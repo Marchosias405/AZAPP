@@ -22,7 +22,7 @@ export function AppShell({ children }: AppShellProps) {
         <section className="flex-1">{children}</section>
 
         <footer className="mt-6 pb-2 text-center text-xs text-slate-500">
-          Part 1 setup only. No database or AI generation is connected yet.
+          No database, AI generation, or real exam logic is connected yet.
         </footer>
       </div>
     </main>
