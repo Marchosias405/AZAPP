@@ -22,7 +22,8 @@ export function AppShell({ children }: AppShellProps) {
         <section className="flex-1">{children}</section>
 
         <footer className="mt-6 pb-2 text-center text-xs text-slate-500">
-          No database, AI generation, or real exam logic is connected yet.
+          Local mode only. Results are saved in this browser until Supabase is
+          added later.
         </footer>
       </div>
     </main>

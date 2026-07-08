@@ -3,12 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import type { LocalQuestion, QuestionType } from "@/lib/exam/types";
 import { areAnswerSetsEqual, formatAnswerList } from "@/lib/exam/grading";
+import { buildAnswerRecord } from "@/lib/exam/score";
+import type { QuestionAnswerRecord } from "@/lib/exam/sessionTypes";
 import { StatusPill } from "@/components/ui/status-pill";
 
 type MockQuestionCardProps = {
   question: LocalQuestion;
   questionNumber: number;
   totalQuestions: number;
+  initialSelectedAnswerIds?: string[];
+  initialHasSubmitted?: boolean;
+  onSubmittedAnswer?: (answerRecord: QuestionAnswerRecord) => void;
 };
 
 const questionTypeLabels: Record<QuestionType, string> = {
@@ -31,10 +36,17 @@ export function MockQuestionCard({
   question,
   questionNumber,
   totalQuestions,
+  initialSelectedAnswerIds = [],
+  initialHasSubmitted = false,
+  onSubmittedAnswer,
 }: MockQuestionCardProps) {
-  const [selectedAnswerIds, setSelectedAnswerIds] = useState<string[]>([]);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [selectedAnswerIds, setSelectedAnswerIds] = useState<string[]>(
+    initialSelectedAnswerIds,
+  );
+  const [hasSubmitted, setHasSubmitted] = useState(initialHasSubmitted);
   const [selectionMessage, setSelectionMessage] = useState("");
+
+  const initialSelectedKey = initialSelectedAnswerIds.join("|");
 
   const correctAnswerSet = useMemo(
     () => new Set(question.correctAnswerIds),
@@ -55,10 +67,10 @@ export function MockQuestionCard({
     .join(" | ");
 
   useEffect(() => {
-    setSelectedAnswerIds([]);
-    setHasSubmitted(false);
+    setSelectedAnswerIds(initialSelectedAnswerIds);
+    setHasSubmitted(initialHasSubmitted);
     setSelectionMessage("");
-  }, [question.id]);
+  }, [question.id, initialSelectedKey, initialHasSubmitted, initialSelectedAnswerIds]);
 
   function handleOptionClick(optionId: string) {
     if (hasSubmitted) {
@@ -104,8 +116,16 @@ export function MockQuestionCard({
       return;
     }
 
+    const answerRecord = buildAnswerRecord({
+      question,
+      questionNumber,
+      selectedAnswerIds,
+      isCorrect,
+    });
+
     setHasSubmitted(true);
     setSelectionMessage("");
+    onSubmittedAnswer?.(answerRecord);
   }
 
   function getOptionClassName(optionId: string) {

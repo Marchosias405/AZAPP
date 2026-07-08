@@ -12,12 +12,12 @@ export default function Home() {
           <StatusPill label={PART_LABEL} tone="ready" />
 
           <h2 className="mt-4 text-xl font-bold">
-            Answer feedback is connected
+            Results page is connected
           </h2>
 
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            You can now select answers, submit them, and review immediate
-            feedback with explanations and memory hooks.
+            A local mock exam can now calculate your score and show missed
+            questions after you finish all questions.
           </p>
         </section>
 
@@ -60,7 +60,8 @@ export default function Home() {
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-cyan-50/80">
-            Part 5 will add the results page and score calculation.
+            Part 6 will add local mistake tracking logic so wrong questions can
+            be remembered for later practice.
           </p>
         </section>
       </div>

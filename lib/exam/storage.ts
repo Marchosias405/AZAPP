@@ -1,0 +1,1 @@
+export const LOCAL_EXAM_RESULT_STORAGE_KEY = "az900-local-exam-result";

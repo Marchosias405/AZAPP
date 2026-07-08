@@ -1,50 +1,9 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { MockQuestionCard } from "@/components/exam/mock-question-card";
-import {
-  getLocalQuestionByIndex,
-  getTotalLocalQuestionCount,
-} from "@/lib/exam/localQuestions";
+import { MockExamRunner } from "@/components/exam/mock-exam-runner";
+import { LOCAL_MOCK_QUESTIONS } from "@/lib/exam/localQuestions";
 
-type MockExamPageProps = {
-  searchParams?: Promise<{
-    q?: string | string[];
-  }>;
-};
-
-function getSafeQuestionNumber(rawQuestionNumber: string | undefined) {
-  const totalQuestions = getTotalLocalQuestionCount();
-  const parsedNumber = Number(rawQuestionNumber ?? "1");
-
-  if (!Number.isFinite(parsedNumber)) {
-    return 1;
-  }
-
-  if (parsedNumber < 1) {
-    return 1;
-  }
-
-  if (parsedNumber > totalQuestions) {
-    return totalQuestions;
-  }
-
-  return Math.floor(parsedNumber);
-}
-
-export default async function MockExamPage({
-  searchParams,
-}: MockExamPageProps) {
-  const params = searchParams ? await searchParams : {};
-  const rawQuestionNumber = Array.isArray(params.q) ? params.q[0] : params.q;
-
-  const totalQuestions = getTotalLocalQuestionCount();
-  const questionNumber = getSafeQuestionNumber(rawQuestionNumber);
-  const questionIndex = questionNumber - 1;
-  const question = getLocalQuestionByIndex(questionIndex);
-
-  const hasPreviousQuestion = questionNumber > 1;
-  const hasNextQuestion = questionNumber < totalQuestions;
-
+export default function MockExamPage() {
   return (
     <AppShell>
       <div className="space-y-4">
@@ -54,54 +13,22 @@ export default async function MockExamPage({
           </p>
 
           <h2 className="mt-2 text-xl font-bold text-white">
-            Answer feedback mode
+            Score calculation mode
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-cyan-50/80">
-            Select your answer, submit it, then review the result, explanation,
-            and memory hook. Scores and results page come in Part 5.
+            Complete all local questions to see your score and missed questions.
+            Results are saved in this browser only for now.
           </p>
         </section>
 
-        <MockQuestionCard
-          question={question}
-          questionNumber={questionNumber}
-          totalQuestions={totalQuestions}
-        />
-
-        <div className="grid grid-cols-2 gap-3">
-          {hasPreviousQuestion ? (
-            <Link
-              href={`/mock-exam?q=${questionNumber - 1}`}
-              className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 text-center text-sm font-semibold text-white"
-            >
-              Previous
-            </Link>
-          ) : (
-            <span className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-center text-sm font-semibold text-slate-500">
-              Previous
-            </span>
-          )}
-
-          {hasNextQuestion ? (
-            <Link
-              href={`/mock-exam?q=${questionNumber + 1}`}
-              className="rounded-2xl bg-cyan-300 px-4 py-4 text-center text-sm font-semibold text-slate-950"
-            >
-              Next
-            </Link>
-          ) : (
-            <span className="rounded-2xl bg-slate-700 px-4 py-4 text-center text-sm font-semibold text-slate-300">
-              Last question
-            </span>
-          )}
-        </div>
+        <MockExamRunner questions={LOCAL_MOCK_QUESTIONS} />
 
         <Link
           href="/"
           className="block w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-4 text-center text-sm font-semibold text-white"
         >
-          Back to dashboard
+          Exit exam and return to dashboard
         </Link>
       </div>
     </AppShell>
