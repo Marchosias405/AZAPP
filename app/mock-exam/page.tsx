@@ -54,12 +54,12 @@ export default async function MockExamPage({
           </p>
 
           <h2 className="mt-2 text-xl font-bold text-white">
-            Basic exam screen
+            Answer feedback mode
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-cyan-50/80">
-            This page uses local sample questions only. No Supabase, Gemini, or
-            answer tracking is connected yet.
+            Select your answer, submit it, then review the result, explanation,
+            and memory hook. Scores and results page come in Part 5.
           </p>
         </section>
 
@@ -96,13 +96,6 @@ export default async function MockExamPage({
             </span>
           )}
         </div>
-
-        <button
-          disabled
-          className="w-full rounded-2xl bg-slate-700 px-4 py-4 text-sm font-semibold text-slate-300 opacity-70"
-        >
-          Submit answer coming in Part 4
-        </button>
 
         <Link
           href="/"

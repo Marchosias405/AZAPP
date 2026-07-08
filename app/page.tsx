@@ -11,11 +11,13 @@ export default function Home() {
         <section className="rounded-3xl border border-white/10 bg-white px-5 py-5 text-slate-950 shadow-sm">
           <StatusPill label={PART_LABEL} tone="ready" />
 
-          <h2 className="mt-4 text-xl font-bold">Local mock exam connected</h2>
+          <h2 className="mt-4 text-xl font-bold">
+            Answer feedback is connected
+          </h2>
 
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            The dashboard now links to a basic mock exam screen using local
-            sample questions. Answer submission comes in the next part.
+            You can now select answers, submit them, and review immediate
+            feedback with explanations and memory hooks.
           </p>
         </section>
 
@@ -58,8 +60,7 @@ export default function Home() {
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-cyan-50/80">
-            Part 4 will add answer selection, submit behavior,
-            correct/incorrect feedback, explanations, and memory hooks.
+            Part 5 will add the results page and score calculation.
           </p>
         </section>
       </div>

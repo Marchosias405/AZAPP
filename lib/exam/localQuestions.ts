@@ -42,33 +42,33 @@ export const LOCAL_MOCK_QUESTIONS: LocalQuestion[] = [
     domain: "Describe cloud concepts",
     topic: "Consumption-based model",
     difficulty: "beginner",
-    questionType: "single-answer",
-    selectCount: 1,
+    questionType: "choose-2",
+    selectCount: 2,
     questionText:
-      "Which statement best describes the consumption-based pricing model?",
+      "Which two statements describe benefits of a consumption-based cloud pricing model?",
     options: [
       {
         id: "A",
-        text: "You pay a fixed price no matter how much you use.",
+        text: "You must buy physical servers before using cloud resources.",
       },
       {
         id: "B",
-        text: "You pay only for the resources you use.",
+        text: "You can pay only for resources you actually use.",
       },
       {
         id: "C",
-        text: "You must buy servers before deploying workloads.",
+        text: "You can reduce upfront hardware spending.",
       },
       {
         id: "D",
-        text: "You are charged only when a support ticket is opened.",
+        text: "You are always charged the same fixed amount every month.",
       },
     ],
-    correctAnswerIds: ["B"],
+    correctAnswerIds: ["B", "C"],
     explanation:
-      "Consumption-based pricing means cloud costs are based on actual usage instead of buying hardware upfront.",
+      "Consumption-based pricing means usage affects cost. It helps avoid large upfront hardware purchases and lets you pay based on what you use.",
     memoryHook:
-      "Cloud pricing is like a taxi meter: the longer you ride, the more you pay.",
+      "Cloud billing is like ordering bubble tea toppings: pay for what you add, not the whole shop.",
     sourceBasis:
       "AZ-900 cloud concepts: consumption-based pricing and cloud cost benefits.",
     tags: ["pricing", "consumption model", "cloud concepts"],
@@ -80,8 +80,7 @@ export const LOCAL_MOCK_QUESTIONS: LocalQuestion[] = [
     difficulty: "standard",
     questionType: "single-answer",
     selectCount: 1,
-    questionText:
-      "What is the main purpose of Azure availability zones?",
+    questionText: "What is the main purpose of Azure availability zones?",
     options: [
       {
         id: "A",
@@ -116,8 +115,7 @@ export const LOCAL_MOCK_QUESTIONS: LocalQuestion[] = [
     difficulty: "beginner",
     questionType: "single-answer",
     selectCount: 1,
-    questionText:
-      "What is an Azure resource group mainly used for?",
+    questionText: "What is an Azure resource group mainly used for?",
     options: [
       {
         id: "A",
@@ -186,36 +184,40 @@ export const LOCAL_MOCK_QUESTIONS: LocalQuestion[] = [
     domain: "Describe Azure management and governance",
     topic: "Azure Monitor and Azure Service Health",
     difficulty: "standard",
-    questionType: "common-confusion",
-    selectCount: 1,
+    questionType: "choose-3",
+    selectCount: 3,
     questionText:
-      "You want to check whether an Azure outage is affecting services in a region. Which service should you use?",
+      "Which three Azure services or tools are commonly used for monitoring, health, and recommendations?",
     options: [
       {
         id: "A",
-        text: "Azure Service Health",
+        text: "Azure Monitor",
       },
       {
         id: "B",
-        text: "Azure Storage Explorer",
+        text: "Azure Service Health",
       },
       {
         id: "C",
-        text: "Azure Cost Management",
+        text: "Azure Advisor",
       },
       {
         id: "D",
-        text: "Azure Blueprints",
+        text: "Azure Data Box",
+      },
+      {
+        id: "E",
+        text: "Azure Storage Explorer",
       },
     ],
-    correctAnswerIds: ["A"],
+    correctAnswerIds: ["A", "B", "C"],
     explanation:
-      "Azure Service Health gives personalized information about Azure service issues, planned maintenance, and health advisories.",
+      "Azure Monitor helps collect and analyze monitoring data. Azure Service Health shows Azure service issues and planned maintenance. Azure Advisor gives recommendations to improve Azure resources.",
     memoryHook:
-      "Service Health is Azure’s doctor note: it tells you if Azure itself is sick.",
+      "Monitor watches your app, Service Health watches Azure, Advisor gives advice like a cloud guidance counselor.",
     sourceBasis:
-      "AZ-900 monitoring and support: Azure Service Health, Azure Monitor, and advisories.",
-    tags: ["service health", "monitoring", "governance"],
+      "AZ-900 monitoring and support: Azure Monitor, Azure Service Health, and Azure Advisor.",
+    tags: ["service health", "monitoring", "advisor", "governance"],
   },
 ];
 
