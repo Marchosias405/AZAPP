@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { DashboardCard as DashboardCardType } from "@/lib/constants/dashboard";
 import { StatusPill } from "@/components/ui/status-pill";
 
@@ -23,12 +24,21 @@ export function DashboardCard({ card }: DashboardCardProps) {
         {card.description}
       </p>
 
-      <button
-        disabled={!isReady}
-        className="mt-5 w-full rounded-2xl bg-slate-900 px-4 py-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
-      >
-        {card.buttonLabel}
-      </button>
+      {isReady ? (
+        <Link
+          href={card.href}
+          className="mt-5 block w-full rounded-2xl bg-slate-900 px-4 py-4 text-center text-sm font-semibold text-white"
+        >
+          {card.buttonLabel}
+        </Link>
+      ) : (
+        <button
+          disabled
+          className="mt-5 w-full rounded-2xl bg-slate-200 px-4 py-4 text-sm font-semibold text-slate-500 disabled:cursor-not-allowed"
+        >
+          {card.buttonLabel}
+        </button>
+      )}
     </article>
   );
 }

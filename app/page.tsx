@@ -11,11 +11,11 @@ export default function Home() {
         <section className="rounded-3xl border border-white/10 bg-white px-5 py-5 text-slate-950 shadow-sm">
           <StatusPill label={PART_LABEL} tone="ready" />
 
-          <h2 className="mt-4 text-xl font-bold">Dashboard is ready</h2>
+          <h2 className="mt-4 text-xl font-bold">Local mock exam connected</h2>
 
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            This is the static home dashboard. The cards show the main study
-            features, but the buttons stay locked until each feature is built.
+            The dashboard now links to a basic mock exam screen using local
+            sample questions. Answer submission comes in the next part.
           </p>
         </section>
 
@@ -58,8 +58,8 @@ export default function Home() {
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-cyan-50/80">
-            Part 3 will add local mock question data and a basic mock exam
-            screen without Supabase or AI yet.
+            Part 4 will add answer selection, submit behavior,
+            correct/incorrect feedback, explanations, and memory hooks.
           </p>
         </section>
       </div>

@@ -14,8 +14,8 @@ export const DASHBOARD_CARDS: DashboardCard[] = [
     description:
       "Practice AZ-900 questions one at a time with a mobile-friendly exam flow.",
     href: "/mock-exam",
-    status: "locked",
-    buttonLabel: "Coming in Part 3",
+    status: "ready",
+    buttonLabel: "Start mock exam",
   },
   {
     title: "Mistakes Only",
