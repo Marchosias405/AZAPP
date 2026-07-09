@@ -12,12 +12,12 @@ export default function Home() {
           <StatusPill label={PART_LABEL} tone="ready" />
 
           <h2 className="mt-4 text-xl font-bold">
-            Results page is connected
+            Mistakes Only is connected
           </h2>
 
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            A local mock exam can now calculate your score and show missed
-            questions after you finish all questions.
+            You can now start a local mock exam, review your results, and open
+            Mistakes Only from the dashboard to practice missed questions.
           </p>
         </section>
 
@@ -60,8 +60,8 @@ export default function Home() {
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-cyan-50/80">
-            Part 6 will add local mistake tracking logic so wrong questions can
-            be remembered for later practice.
+            Part 8 can add a proper mistake review page with filters, empty
+            states, and clearer history before we move toward Supabase.
           </p>
         </section>
       </div>

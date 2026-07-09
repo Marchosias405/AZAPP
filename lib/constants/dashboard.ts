@@ -20,10 +20,10 @@ export const DASHBOARD_CARDS: DashboardCard[] = [
   {
     title: "Mistakes Only",
     description:
-      "Redo questions you previously got wrong so weak topics come back more often.",
-    href: "/mistakes-only",
-    status: "locked",
-    buttonLabel: "Coming later",
+      "Practice only the questions you missed in your local mock exams.",
+    href: "/mistakes",
+    status: "ready",
+    buttonLabel: "Practice mistakes",
   },
   {
     title: "Review All Mistakes",
