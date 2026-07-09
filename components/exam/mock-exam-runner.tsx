@@ -93,8 +93,8 @@ export function MockExamRunner({ questions }: MockExamRunnerProps) {
           </div>
 
           <div className="rounded-2xl bg-white px-4 py-3 text-right text-sm font-semibold text-slate-950">
-            {currentScorePreview.correctSoFar}/{currentScorePreview.answeredCount}{" "}
-            correct
+            {currentScorePreview.correctSoFar}/{questions.length} correct
+            
           </div>
         </div>
 
@@ -134,7 +134,7 @@ export function MockExamRunner({ questions }: MockExamRunnerProps) {
           type="button"
           disabled={!hasSubmittedCurrentQuestion}
           onClick={goToNextQuestion}
-          className="rounded-2xl bg-cyan-300 px-4 py-4 text-center text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300"
+          className="rounded-2xl bg-cyan-300 px-4 py-4 text-center text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:bg-white/5 disabled:text-slate-500 disabled:ring-1 disabled:ring-white/10"
         >
           {hasNextQuestion ? "Next" : "Finish exam"}
         </button>

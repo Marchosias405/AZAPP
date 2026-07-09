@@ -66,11 +66,15 @@ export function MockQuestionCard({
     .map((option) => `${option.id}. ${option.text}`)
     .join(" | ");
 
+
   useEffect(() => {
-    setSelectedAnswerIds(initialSelectedAnswerIds);
-    setHasSubmitted(initialHasSubmitted);
-    setSelectionMessage("");
+    queueMicrotask(() => {
+      setSelectedAnswerIds(initialSelectedAnswerIds);
+      setHasSubmitted(initialHasSubmitted);
+      setSelectionMessage("");
+    });
   }, [question.id, initialSelectedKey, initialHasSubmitted, initialSelectedAnswerIds]);
+
 
   function handleOptionClick(optionId: string) {
     if (hasSubmitted) {

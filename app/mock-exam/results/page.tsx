@@ -2,28 +2,33 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { LOCAL_EXAM_RESULT_STORAGE_KEY } from "@/lib/exam/storage";
+
 import { AppShell } from "@/components/app-shell";
 import type { LocalExamResult } from "@/lib/exam/sessionTypes";
-import { LOCAL_EXAM_RESULT_STORAGE_KEY } from "@/lib/exam/storage";
 
 export default function LocalExamResultsPage() {
   const [result, setResult] = useState<LocalExamResult | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
-    const savedResult = window.localStorage.getItem(
-      LOCAL_EXAM_RESULT_STORAGE_KEY,
-    );
+    queueMicrotask(() => {
+      const savedResult = window.localStorage.getItem(LOCAL_EXAM_RESULT_STORAGE_KEY);
 
-    if (savedResult) {
+      if (!savedResult) {
+        setResult(null);
+        setHasLoaded(true);
+        return;
+      }
+
       try {
         setResult(JSON.parse(savedResult) as LocalExamResult);
       } catch {
         setResult(null);
+      } finally {
+        setHasLoaded(true);
       }
-    }
-
-    setHasLoaded(true);
+    });
   }, []);
 
   if (!hasLoaded) {
