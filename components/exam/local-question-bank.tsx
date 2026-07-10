@@ -5,6 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 
 import * as localQuestionModule from "@/lib/exam/localQuestions";
 import {
+  getLocalDisabledQuestions,
+  removeLocalDisabledQuestion,
+  saveLocalDisabledQuestion,
+  type LocalDisabledQuestion,
+} from "@/lib/exam/disabledQuestions";
+import {
   getLocalQuestionReports,
   removeLocalQuestionReport,
   saveLocalQuestionReport,
@@ -58,6 +64,15 @@ const REPORT_REASON_LABELS: Record<LocalQuestionReportReason, string> = {
   "bad-explanation": "Explanation is weak or wrong",
   other: "Other issue",
 };
+
+const DISABLE_REASON_OPTIONS = [
+  "Wrong answer",
+  "Confusing wording",
+  "Too advanced for AZ-900",
+  "Duplicate question",
+  "Bad explanation",
+  "Other issue",
+];
 
 function getLocalQuestionBank(): QuestionLike[] {
   const exportedValues = Object.values(
@@ -268,24 +283,44 @@ function getReportForQuestion(
   return reports.find((report) => report.questionId === questionId) ?? null;
 }
 
+function getDisabledQuestion(
+  disabledQuestions: LocalDisabledQuestion[],
+  questionId: string,
+): LocalDisabledQuestion | null {
+  return (
+    disabledQuestions.find(
+      (disabledQuestion) => disabledQuestion.questionId === questionId,
+    ) ?? null
+  );
+}
+
 export function LocalQuestionBank() {
   const questions = useMemo(() => getLocalQuestionBank(), []);
   const [searchText, setSearchText] = useState("");
   const [topicFilter, setTopicFilter] = useState("all");
   const [domainFilter, setDomainFilter] = useState("all");
   const [reportedOnly, setReportedOnly] = useState(false);
+  const [showDisabledQuestions, setShowDisabledQuestions] = useState(false);
   const [reports, setReports] = useState<LocalQuestionReport[]>([]);
+  const [disabledQuestions, setDisabledQuestions] = useState<
+    LocalDisabledQuestion[]
+  >([]);
   const [activeReportQuestionId, setActiveReportQuestionId] = useState<
+    string | null
+  >(null);
+  const [activeDisableQuestionId, setActiveDisableQuestionId] = useState<
     string | null
   >(null);
   const [reportReason, setReportReason] =
     useState<LocalQuestionReportReason>("wrong-answer");
   const [reportNote, setReportNote] = useState("");
+  const [disableReason, setDisableReason] = useState(DISABLE_REASON_OPTIONS[0]);
   const [statusMessage, setStatusMessage] = useState("");
 
   useEffect(() => {
     queueMicrotask(() => {
       setReports(getLocalQuestionReports());
+      setDisabledQuestions(getLocalDisabledQuestions());
     });
   }, []);
 
@@ -303,6 +338,14 @@ export function LocalQuestionBank() {
     return new Set(reports.map((report) => report.questionId));
   }, [reports]);
 
+  const disabledQuestionIds = useMemo(() => {
+    return new Set(
+      disabledQuestions.map((disabledQuestion) => disabledQuestion.questionId),
+    );
+  }, [disabledQuestions]);
+
+  const activeQuestionsCount = questions.length - disabledQuestions.length;
+
   const filteredQuestions = useMemo(() => {
     const normalizedSearchText = searchText.trim().toLowerCase();
 
@@ -312,6 +355,7 @@ export function LocalQuestionBank() {
       const domain = question.domain ?? "";
       const explanation = question.explanation ?? "";
       const memoryHook = question.memoryHook ?? question.memory_hook ?? "";
+      const isDisabled = disabledQuestionIds.has(question.id);
 
       const matchesSearch =
         normalizedSearchText.length === 0 ||
@@ -325,15 +369,24 @@ export function LocalQuestionBank() {
       const matchesDomain = domainFilter === "all" || domain === domainFilter;
       const matchesReported =
         !reportedOnly || reportedQuestionIds.has(question.id);
+      const matchesDisabledVisibility = showDisabledQuestions || !isDisabled;
 
-      return matchesSearch && matchesTopic && matchesDomain && matchesReported;
+      return (
+        matchesSearch &&
+        matchesTopic &&
+        matchesDomain &&
+        matchesReported &&
+        matchesDisabledVisibility
+      );
     });
   }, [
+    disabledQuestionIds,
     domainFilter,
     questions,
     reportedOnly,
     reportedQuestionIds,
     searchText,
+    showDisabledQuestions,
     topicFilter,
   ]);
 
@@ -347,6 +400,7 @@ export function LocalQuestionBank() {
     const existingReport = getReportForQuestion(reports, questionId);
 
     setActiveReportQuestionId(questionId);
+    setActiveDisableQuestionId(null);
     setReportReason(existingReport?.reason ?? "wrong-answer");
     setReportNote(existingReport?.note ?? "");
     setStatusMessage("");
@@ -393,6 +447,62 @@ export function LocalQuestionBank() {
     setStatusMessage("Question report cleared.");
   }
 
+  function startDisable(questionId: string) {
+    const existingDisabledQuestion = getDisabledQuestion(
+      disabledQuestions,
+      questionId,
+    );
+
+    setActiveDisableQuestionId(questionId);
+    setActiveReportQuestionId(null);
+    setDisableReason(existingDisabledQuestion?.reason ?? DISABLE_REASON_OPTIONS[0]);
+    setStatusMessage("");
+  }
+
+  function cancelDisable() {
+    setActiveDisableQuestionId(null);
+    setDisableReason(DISABLE_REASON_OPTIONS[0]);
+  }
+
+  function submitDisable(questionId: string) {
+    const savedDisabledQuestion = saveLocalDisabledQuestion(
+      questionId,
+      disableReason,
+    );
+
+    setDisabledQuestions((currentDisabledQuestions) => {
+      const alreadyDisabled = currentDisabledQuestions.some(
+        (disabledQuestion) => disabledQuestion.questionId === questionId,
+      );
+
+      if (alreadyDisabled) {
+        return currentDisabledQuestions.map((disabledQuestion) =>
+          disabledQuestion.questionId === questionId
+            ? savedDisabledQuestion
+            : disabledQuestion,
+        );
+      }
+
+      return [...currentDisabledQuestions, savedDisabledQuestion];
+    });
+
+    setActiveDisableQuestionId(null);
+    setDisableReason(DISABLE_REASON_OPTIONS[0]);
+    setStatusMessage(
+      "Question disabled locally. It is hidden unless you turn on disabled questions.",
+    );
+  }
+
+  function enableQuestion(questionId: string) {
+    removeLocalDisabledQuestion(questionId);
+    setDisabledQuestions((currentDisabledQuestions) =>
+      currentDisabledQuestions.filter(
+        (disabledQuestion) => disabledQuestion.questionId !== questionId,
+      ),
+    );
+    setStatusMessage("Question re-enabled locally.");
+  }
+
   if (questions.length === 0) {
     return (
       <div className="space-y-4">
@@ -429,12 +539,12 @@ export function LocalQuestionBank() {
         <h1 className="mt-3 text-2xl font-bold">Local question bank</h1>
 
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Browse the local AZ-900 practice questions currently built into the
-          app. You can now flag bad questions locally before database-backed
-          editing, disabling, deleting, and regeneration are added.
+          Browse local AZ-900 questions, flag bad ones, or disable questions
+          locally without deleting them. Disabled questions are hidden by
+          default.
         </p>
 
-        <div className="mt-4 grid grid-cols-4 gap-3">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
           <div className="rounded-2xl bg-slate-100 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
               Total
@@ -444,9 +554,9 @@ export function LocalQuestionBank() {
 
           <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-emerald-900">
             <p className="text-xs font-semibold uppercase tracking-[0.16em]">
-              Single
+              Active
             </p>
-            <p className="mt-1 text-xl font-black">{singleAnswerCount}</p>
+            <p className="mt-1 text-xl font-black">{activeQuestionsCount}</p>
           </div>
 
           <div className="rounded-2xl bg-cyan-50 px-4 py-3 text-cyan-950">
@@ -461,6 +571,15 @@ export function LocalQuestionBank() {
               Flagged
             </p>
             <p className="mt-1 text-xl font-black">{reports.length}</p>
+          </div>
+
+          <div className="rounded-2xl bg-rose-50 px-4 py-3 text-rose-950">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]">
+              Disabled
+            </p>
+            <p className="mt-1 text-xl font-black">
+              {disabledQuestions.length}
+            </p>
           </div>
         </div>
 
@@ -549,10 +668,20 @@ export function LocalQuestionBank() {
           Show flagged questions only
         </label>
 
+        <label className="mt-3 flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-950">
+          <input
+            type="checkbox"
+            checked={showDisabledQuestions}
+            onChange={(event) => setShowDisabledQuestions(event.target.checked)}
+            className="h-4 w-4"
+          />
+          Show disabled questions
+        </label>
+
         <p className="mt-3 text-xs leading-5 text-slate-500">
           Showing {filteredQuestions.length} of {questions.length} local
-          questions. {reports.length} question
-          {reports.length === 1 ? "" : "s"} flagged locally.
+          questions. {reports.length} flagged, {disabledQuestions.length}{" "}
+          disabled.
         </p>
       </section>
 
@@ -563,7 +692,7 @@ export function LocalQuestionBank() {
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Try clearing the search box, choosing All domains and All topics,
-              or turning off flagged-only mode.
+              turning off flagged-only mode, or showing disabled questions.
             </p>
           </div>
         ) : (
@@ -571,12 +700,21 @@ export function LocalQuestionBank() {
             const options = getOptions(question);
             const correctAnswerIds = getCorrectAnswerIds(question);
             const report = getReportForQuestion(reports, question.id);
+            const disabledQuestion = getDisabledQuestion(
+              disabledQuestions,
+              question.id,
+            );
             const isReportFormOpen = activeReportQuestionId === question.id;
+            const isDisableFormOpen = activeDisableQuestionId === question.id;
 
             return (
               <article
                 key={question.id}
-                className="rounded-3xl border border-white/10 bg-white px-5 py-5 text-slate-950"
+                className={
+                  disabledQuestion
+                    ? "rounded-3xl border border-rose-200 bg-rose-50 px-5 py-5 text-slate-950"
+                    : "rounded-3xl border border-white/10 bg-white px-5 py-5 text-slate-950"
+                }
               >
                 <div className="flex flex-wrap gap-2">
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
@@ -594,6 +732,12 @@ export function LocalQuestionBank() {
                   {report ? (
                     <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">
                       Flagged
+                    </span>
+                  ) : null}
+
+                  {disabledQuestion ? (
+                    <span className="rounded-full bg-rose-200 px-3 py-1 text-xs font-bold text-rose-950">
+                      Disabled
                     </span>
                   ) : null}
                 </div>
@@ -618,6 +762,17 @@ export function LocalQuestionBank() {
                         Note: {report.note}
                       </p>
                     ) : null}
+                  </div>
+                ) : null}
+
+                {disabledQuestion ? (
+                  <div className="mt-4 rounded-2xl border border-rose-200 bg-white px-4 py-4 text-rose-950">
+                    <p className="text-sm font-bold">
+                      This question is disabled locally
+                    </p>
+                    <p className="mt-2 text-sm leading-6">
+                      Reason: {disabledQuestion.reason}
+                    </p>
                   </div>
                 ) : null}
 
@@ -734,8 +889,61 @@ export function LocalQuestionBank() {
                       </button>
                     </div>
                   </div>
-                ) : (
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                ) : null}
+
+                {isDisableFormOpen ? (
+                  <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-rose-950">
+                    <h3 className="text-base font-bold">
+                      Disable this question
+                    </h3>
+
+                    <p className="mt-2 text-sm leading-6">
+                      Disabling hides this question locally without deleting it.
+                      You can re-enable it later.
+                    </p>
+
+                    <label
+                      htmlFor={`disable-reason-${question.id}`}
+                      className="mt-4 block text-sm font-bold"
+                    >
+                      Reason
+                    </label>
+
+                    <select
+                      id={`disable-reason-${question.id}`}
+                      value={disableReason}
+                      onChange={(event) => setDisableReason(event.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-rose-300 bg-white px-4 py-3 text-sm font-semibold text-slate-950"
+                    >
+                      {DISABLE_REASON_OPTIONS.map((reason) => (
+                        <option key={reason} value={reason}>
+                          {reason}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => submitDisable(question.id)}
+                        className="rounded-2xl bg-rose-400 px-4 py-3 text-sm font-bold text-rose-950"
+                      >
+                        Disable question
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={cancelDisable}
+                        className="rounded-2xl border border-rose-300 bg-white px-4 py-3 text-sm font-bold text-rose-950"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {!isReportFormOpen && !isDisableFormOpen ? (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     <button
                       type="button"
                       onClick={() => startReport(question.id)}
@@ -753,8 +961,26 @@ export function LocalQuestionBank() {
                         Clear report
                       </button>
                     ) : null}
+
+                    {disabledQuestion ? (
+                      <button
+                        type="button"
+                        onClick={() => enableQuestion(question.id)}
+                        className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-950"
+                      >
+                        Re-enable
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => startDisable(question.id)}
+                        className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-950"
+                      >
+                        Disable
+                      </button>
+                    )}
                   </div>
-                )}
+                ) : null}
               </article>
             );
           })
