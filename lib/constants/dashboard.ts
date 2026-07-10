@@ -28,10 +28,10 @@ export const DASHBOARD_CARDS: DashboardCard[] = [
   {
     title: "Review All Mistakes",
     description:
-      "See missed questions with explanations, correct answers, and memory hooks.",
-    href: "/mistakes",
-    status: "locked",
-    buttonLabel: "Coming later",
+      "Review missed questions with explanations, correct answers, and memory hooks.",
+    href: "/mistakes/review",
+    status: "ready",
+    buttonLabel: "Review mistakes",
   },
   {
     title: "Progress Stats",
