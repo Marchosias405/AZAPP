@@ -11,6 +11,12 @@ import {
   type LocalDisabledQuestion,
 } from "@/lib/exam/disabledQuestions";
 import {
+  getLocalMasteredQuestions,
+  removeLocalMasteredQuestion,
+  saveLocalMasteredQuestion,
+  type LocalMasteredQuestion,
+} from "@/lib/exam/masteredQuestions";
+import {
   getLocalQuestionReports,
   removeLocalQuestionReport,
   saveLocalQuestionReport,
@@ -293,6 +299,16 @@ function getDisabledQuestion(
     ) ?? null
   );
 }
+function getMasteredQuestion(
+  masteredQuestions: LocalMasteredQuestion[],
+  questionId: string,
+): LocalMasteredQuestion | null {
+  return (
+    masteredQuestions.find(
+      (masteredQuestion) => masteredQuestion.questionId === questionId,
+    ) ?? null
+  );
+}
 
 export function LocalQuestionBank() {
   const questions = useMemo(() => getLocalQuestionBank(), []);
@@ -301,9 +317,13 @@ export function LocalQuestionBank() {
   const [domainFilter, setDomainFilter] = useState("all");
   const [reportedOnly, setReportedOnly] = useState(false);
   const [showDisabledQuestions, setShowDisabledQuestions] = useState(false);
+  const [masteredOnly, setMasteredOnly] = useState(false);
   const [reports, setReports] = useState<LocalQuestionReport[]>([]);
   const [disabledQuestions, setDisabledQuestions] = useState<
     LocalDisabledQuestion[]
+  >([]);
+  const [masteredQuestions, setMasteredQuestions] = useState<
+    LocalMasteredQuestion[]
   >([]);
   const [activeReportQuestionId, setActiveReportQuestionId] = useState<
     string | null
@@ -321,6 +341,7 @@ export function LocalQuestionBank() {
     queueMicrotask(() => {
       setReports(getLocalQuestionReports());
       setDisabledQuestions(getLocalDisabledQuestions());
+      setMasteredQuestions(getLocalMasteredQuestions());
     });
   }, []);
 
@@ -344,6 +365,12 @@ export function LocalQuestionBank() {
     );
   }, [disabledQuestions]);
 
+  const masteredQuestionIds = useMemo(() => {
+    return new Set(
+      masteredQuestions.map((masteredQuestion) => masteredQuestion.questionId),
+    );
+  }, [masteredQuestions]);
+
   const activeQuestionsCount = questions.length - disabledQuestions.length;
 
   const filteredQuestions = useMemo(() => {
@@ -356,6 +383,7 @@ export function LocalQuestionBank() {
       const explanation = question.explanation ?? "";
       const memoryHook = question.memoryHook ?? question.memory_hook ?? "";
       const isDisabled = disabledQuestionIds.has(question.id);
+      const isMastered = masteredQuestionIds.has(question.id);
 
       const matchesSearch =
         normalizedSearchText.length === 0 ||
@@ -370,18 +398,22 @@ export function LocalQuestionBank() {
       const matchesReported =
         !reportedOnly || reportedQuestionIds.has(question.id);
       const matchesDisabledVisibility = showDisabledQuestions || !isDisabled;
+      const matchesMastered = !masteredOnly || isMastered;
 
       return (
         matchesSearch &&
         matchesTopic &&
         matchesDomain &&
         matchesReported &&
-        matchesDisabledVisibility
+        matchesDisabledVisibility &&
+        matchesMastered
       );
     });
   }, [
     disabledQuestionIds,
     domainFilter,
+    masteredOnly,
+    masteredQuestionIds,
     questions,
     reportedOnly,
     reportedQuestionIds,
@@ -503,6 +535,43 @@ export function LocalQuestionBank() {
     setStatusMessage("Question re-enabled locally.");
   }
 
+  function markQuestionAsMastered(questionId: string) {
+    const savedMasteredQuestion = saveLocalMasteredQuestion(questionId);
+
+    setMasteredQuestions((currentMasteredQuestions) => {
+      const alreadyMastered = currentMasteredQuestions.some(
+        (masteredQuestion) => masteredQuestion.questionId === questionId,
+      );
+
+      if (alreadyMastered) {
+        return currentMasteredQuestions.map((masteredQuestion) =>
+          masteredQuestion.questionId === questionId
+            ? savedMasteredQuestion
+            : masteredQuestion,
+        );
+      }
+
+      return [...currentMasteredQuestions, savedMasteredQuestion];
+    });
+
+    setStatusMessage(
+      "Question marked as mastered. Mock exam selection is unchanged for now.",
+    );
+  }
+
+  function unmarkQuestionAsMastered(questionId: string) {
+    removeLocalMasteredQuestion(questionId);
+
+    setMasteredQuestions((currentMasteredQuestions) =>
+      currentMasteredQuestions.filter(
+        (masteredQuestion) => masteredQuestion.questionId !== questionId,
+      ),
+    );
+
+    setStatusMessage("Question removed from mastered questions.");
+  }
+
+
   if (questions.length === 0) {
     return (
       <div className="space-y-4">
@@ -539,12 +608,12 @@ export function LocalQuestionBank() {
         <h1 className="mt-3 text-2xl font-bold">Local question bank</h1>
 
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Browse local AZ-900 questions, flag bad ones, or disable questions
-          locally without deleting them. Disabled questions are hidden by
-          default.
+          Browse local AZ-900 questions, flag bad ones, disable questions, or
+          mark questions you feel confident about as mastered. Disabled
+          questions are hidden by default.
         </p>
 
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <div className="rounded-2xl bg-slate-100 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
               Total
@@ -579,6 +648,14 @@ export function LocalQuestionBank() {
             </p>
             <p className="mt-1 text-xl font-black">
               {disabledQuestions.length}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-indigo-50 px-4 py-3 text-indigo-950">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]">
+              Mastered
+            </p>
+            <p className="mt-1 text-xl font-black">
+              {masteredQuestions.length}
             </p>
           </div>
         </div>
@@ -677,11 +754,20 @@ export function LocalQuestionBank() {
           />
           Show disabled questions
         </label>
+        <label className="mt-3 flex items-center gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-950">
+          <input
+            type="checkbox"
+            checked={masteredOnly}
+            onChange={(event) => setMasteredOnly(event.target.checked)}
+            className="h-4 w-4"
+          />
+          Show mastered questions only
+        </label>
 
         <p className="mt-3 text-xs leading-5 text-slate-500">
           Showing {filteredQuestions.length} of {questions.length} local
           questions. {reports.length} flagged, {disabledQuestions.length}{" "}
-          disabled.
+          disabled, and {masteredQuestions.length} mastered.
         </p>
       </section>
 
@@ -692,7 +778,8 @@ export function LocalQuestionBank() {
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Try clearing the search box, choosing All domains and All topics,
-              turning off flagged-only mode, or showing disabled questions.
+              turning off flagged-only or mastered-only mode, or showing
+              disabled questions.
             </p>
           </div>
         ) : (
@@ -702,6 +789,10 @@ export function LocalQuestionBank() {
             const report = getReportForQuestion(reports, question.id);
             const disabledQuestion = getDisabledQuestion(
               disabledQuestions,
+              question.id,
+            );
+            const masteredQuestion = getMasteredQuestion(
+              masteredQuestions,
               question.id,
             );
             const isReportFormOpen = activeReportQuestionId === question.id;
@@ -738,6 +829,11 @@ export function LocalQuestionBank() {
                   {disabledQuestion ? (
                     <span className="rounded-full bg-rose-200 px-3 py-1 text-xs font-bold text-rose-950">
                       Disabled
+                    </span>
+                  ) : null}
+                  {masteredQuestion ? (
+                    <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-950">
+                      Mastered
                     </span>
                   ) : null}
                 </div>
@@ -943,7 +1039,7 @@ export function LocalQuestionBank() {
                 ) : null}
 
                 {!isReportFormOpen && !isDisableFormOpen ? (
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <button
                       type="button"
                       onClick={() => startReport(question.id)}
@@ -977,6 +1073,23 @@ export function LocalQuestionBank() {
                         className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-950"
                       >
                         Disable
+                      </button>
+                    )}
+                    {masteredQuestion ? (
+                      <button
+                        type="button"
+                        onClick={() => unmarkQuestionAsMastered(question.id)}
+                        className="rounded-2xl border border-indigo-300 bg-white px-4 py-3 text-sm font-bold text-indigo-950"
+                      >
+                        Unmark mastered
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => markQuestionAsMastered(question.id)}
+                        className="rounded-2xl border border-indigo-300 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-950"
+                      >
+                        Mark as mastered
                       </button>
                     )}
                   </div>
