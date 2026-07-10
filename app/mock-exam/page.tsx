@@ -18,8 +18,9 @@ export default function MockExamPage() {
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-cyan-50/80">
-            Complete all active local questions to see your score and missed
-            questions. Disabled questions are skipped but not deleted.
+            Complete up to five active local questions to see your score and
+            missed questions. Disabled questions are excluded, and
+            non-mastered questions are selected before mastered questions.
           </p>
         </section>
 

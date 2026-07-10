@@ -5,6 +5,11 @@ import { useEffect, useState } from "react";
 
 import { MockExamRunner } from "@/components/exam/mock-exam-runner";
 import { getLocalDisabledQuestions } from "@/lib/exam/disabledQuestions";
+import { getLocalMasteredQuestions } from "@/lib/exam/masteredQuestions";
+import {
+  LOCAL_MOCK_EXAM_MAX_QUESTIONS,
+  selectLocalExamQuestions,
+} from "@/lib/exam/selectLocalExamQuestions";
 import type { LocalQuestion } from "@/lib/exam/types";
 
 type LocalMockExamEntryProps = {
@@ -12,10 +17,13 @@ type LocalMockExamEntryProps = {
 };
 
 export function LocalMockExamEntry({ questions }: LocalMockExamEntryProps) {
-  const [activeQuestions, setActiveQuestions] = useState<LocalQuestion[] | null>(
+  const [examQuestions, setExamQuestions] = useState<LocalQuestion[] | null>(
     null,
   );
   const [disabledCount, setDisabledCount] = useState(0);
+  const [activeQuestionCount, setActiveQuestionCount] = useState(0);
+  const [activeMasteredCount, setActiveMasteredCount] = useState(0);
+  const [selectedMasteredCount, setSelectedMasteredCount] = useState(0);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -25,27 +33,50 @@ export function LocalMockExamEntry({ questions }: LocalMockExamEntryProps) {
         ),
       );
 
+      const masteredQuestionIds = new Set(
+        getLocalMasteredQuestions().map(
+          (masteredQuestion) => masteredQuestion.questionId,
+        ),
+      );
+
       const enabledQuestions = questions.filter(
         (question) => !disabledQuestionIds.has(question.id),
       );
 
-      setActiveQuestions(enabledQuestions);
+      const selectedQuestions = selectLocalExamQuestions({
+        questions: enabledQuestions,
+        masteredQuestionIds,
+      });
+
+      const enabledMasteredQuestionCount = enabledQuestions.filter((question) =>
+        masteredQuestionIds.has(question.id),
+      ).length;
+
+      const selectedMasteredQuestionCount = selectedQuestions.filter(
+        (question) => masteredQuestionIds.has(question.id),
+      ).length;
+
+      setExamQuestions(selectedQuestions);
       setDisabledCount(questions.length - enabledQuestions.length);
+      setActiveQuestionCount(enabledQuestions.length);
+      setActiveMasteredCount(enabledMasteredQuestionCount);
+      setSelectedMasteredCount(selectedMasteredQuestionCount);
     });
   }, [questions]);
 
-  if (activeQuestions === null) {
+  if (examQuestions === null) {
     return (
       <section className="rounded-3xl border border-white/10 bg-white px-5 py-5 text-slate-950">
-        <h2 className="text-xl font-bold">Loading local exam...</h2>
+        <h2 className="text-xl font-bold">Preparing local exam...</h2>
+
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Checking whether any local questions are disabled.
+          Checking disabled and mastered questions, then selecting your exam.
         </p>
       </section>
     );
   }
 
-  if (activeQuestions.length === 0) {
+  if (examQuestions.length === 0) {
     return (
       <section className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-5 text-rose-950">
         <p className="text-xs font-semibold uppercase tracking-[0.2em]">
@@ -71,6 +102,10 @@ export function LocalMockExamEntry({ questions }: LocalMockExamEntryProps) {
     );
   }
 
+  const skippedActiveCount = activeQuestionCount - examQuestions.length;
+  const shouldShowSelectionSummary =
+    activeMasteredCount > 0 || skippedActiveCount > 0;
+
   return (
     <div className="space-y-4">
       {disabledCount > 0 ? (
@@ -93,7 +128,39 @@ export function LocalMockExamEntry({ questions }: LocalMockExamEntryProps) {
         </section>
       ) : null}
 
-      <MockExamRunner questions={activeQuestions} />
+      {shouldShowSelectionSummary ? (
+        <section className="rounded-3xl border border-indigo-200 bg-indigo-50 px-5 py-5 text-indigo-950">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em]">
+            Local exam selection
+          </p>
+
+          <h2 className="mt-2 text-lg font-bold">
+            Non-mastered questions come first
+          </h2>
+
+          <p className="mt-2 text-sm leading-6">
+            This exam uses {examQuestions.length} of {activeQuestionCount}{" "}
+            active question{activeQuestionCount === 1 ? "" : "s"}.
+            Non-mastered questions fill the exam first. Mastered questions are
+            only included when needed to fill up to{" "}
+            {LOCAL_MOCK_EXAM_MAX_QUESTIONS} spots.
+          </p>
+
+          {activeMasteredCount > 0 ? (
+            <p className="mt-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold leading-6">
+              Included {selectedMasteredCount} of {activeMasteredCount} active
+              mastered question{activeMasteredCount === 1 ? "" : "s"}.
+            </p>
+          ) : null}
+
+          <p className="mt-3 text-xs leading-5 text-indigo-800">
+            Question order and any mastered-question slots are randomized when
+            the exam starts.
+          </p>
+        </section>
+      ) : null}
+
+      <MockExamRunner questions={examQuestions} />
     </div>
   );
 }
