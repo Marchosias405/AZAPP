@@ -52,9 +52,9 @@ export const DASHBOARD_CARDS: DashboardCard[] = [
   {
     title: "Question Bank",
     description:
-      "Review, filter, disable, delete, regenerate, or mark questions as mastered.",
+      "Browse all local questions, filter by domain/topic, and review explanations before taking an exam.",
     href: "/question-bank",
-    status: "locked",
-    buttonLabel: "Coming later",
+    status: "ready",
+    buttonLabel: "Open question bank",
   },
 ];
