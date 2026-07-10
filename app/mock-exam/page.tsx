@@ -1,6 +1,7 @@
 import Link from "next/link";
+
 import { AppShell } from "@/components/app-shell";
-import { MockExamRunner } from "@/components/exam/mock-exam-runner";
+import { LocalMockExamEntry } from "@/components/exam/local-mock-exam-entry";
 import { LOCAL_MOCK_QUESTIONS } from "@/lib/exam/localQuestions";
 
 export default function MockExamPage() {
@@ -17,12 +18,12 @@ export default function MockExamPage() {
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-cyan-50/80">
-            Complete all local questions to see your score and missed questions.
-            Results are saved in this browser only for now.
+            Complete all active local questions to see your score and missed
+            questions. Disabled questions are skipped but not deleted.
           </p>
         </section>
 
-        <MockExamRunner questions={LOCAL_MOCK_QUESTIONS} />
+        <LocalMockExamEntry questions={LOCAL_MOCK_QUESTIONS} />
 
         <Link
           href="/"
