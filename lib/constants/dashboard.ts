@@ -36,10 +36,10 @@ export const DASHBOARD_CARDS: DashboardCard[] = [
   {
     title: "Progress Stats",
     description:
-      "Track your score, weak domains, mastered topics, and study progress.",
+      "See your latest local exam score, weak topics, strong topics, and recommended focus.",
     href: "/stats",
-    status: "locked",
-    buttonLabel: "Coming later",
+    status: "ready",
+    buttonLabel: "View stats",
   },
   {
     title: "Generate More Questions",

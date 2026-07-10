@@ -12,12 +12,12 @@ export default function Home() {
           <StatusPill label={PART_LABEL} tone="ready" />
 
           <h2 className="mt-4 text-xl font-bold">
-            Mistakes Only is connected
+            Local progress stats are connected
           </h2>
 
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            You can now start a local mock exam, review your results, and open
-            Mistakes Only from the dashboard to practice missed questions.
+            You can now review your latest score, weak topics, strong topics, and
+            recommended focus from the dashboard.
           </p>
         </section>
 
@@ -60,8 +60,8 @@ export default function Home() {
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-cyan-50/80">
-            Part 8 can add a proper mistake review page with filters, empty
-            states, and clearer history before we move toward Supabase.
+            Part 10 can add a local question bank page before we move toward Supabase
+            storage and AI generation.
           </p>
         </section>
       </div>
