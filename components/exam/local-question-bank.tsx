@@ -1,9 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import * as localQuestionModule from "@/lib/exam/localQuestions";
+import {
+  getLocalQuestionReports,
+  removeLocalQuestionReport,
+  saveLocalQuestionReport,
+  type LocalQuestionReport,
+  type LocalQuestionReportReason,
+} from "@/lib/exam/questionReports";
 
 type QuestionOptionLike =
   | string
@@ -42,6 +49,15 @@ type NormalizedOption = {
 };
 
 const OPTION_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+const REPORT_REASON_LABELS: Record<LocalQuestionReportReason, string> = {
+  "wrong-answer": "Correct answer seems wrong",
+  "confusing-wording": "Question wording is confusing",
+  "too-hard": "Too advanced for AZ-900",
+  duplicate: "Duplicate question",
+  "bad-explanation": "Explanation is weak or wrong",
+  other: "Other issue",
+};
 
 function getLocalQuestionBank(): QuestionLike[] {
   const exportedValues = Object.values(
@@ -245,11 +261,33 @@ function getUniqueSortedValues(
   return Array.from(values).sort();
 }
 
+function getReportForQuestion(
+  reports: LocalQuestionReport[],
+  questionId: string,
+): LocalQuestionReport | null {
+  return reports.find((report) => report.questionId === questionId) ?? null;
+}
+
 export function LocalQuestionBank() {
   const questions = useMemo(() => getLocalQuestionBank(), []);
   const [searchText, setSearchText] = useState("");
   const [topicFilter, setTopicFilter] = useState("all");
   const [domainFilter, setDomainFilter] = useState("all");
+  const [reportedOnly, setReportedOnly] = useState(false);
+  const [reports, setReports] = useState<LocalQuestionReport[]>([]);
+  const [activeReportQuestionId, setActiveReportQuestionId] = useState<
+    string | null
+  >(null);
+  const [reportReason, setReportReason] =
+    useState<LocalQuestionReportReason>("wrong-answer");
+  const [reportNote, setReportNote] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setReports(getLocalQuestionReports());
+    });
+  }, []);
 
   const topics = useMemo(
     () => getUniqueSortedValues(questions, (question) => question.topic),
@@ -260,6 +298,10 @@ export function LocalQuestionBank() {
     () => getUniqueSortedValues(questions, (question) => question.domain),
     [questions],
   );
+
+  const reportedQuestionIds = useMemo(() => {
+    return new Set(reports.map((report) => report.questionId));
+  }, [reports]);
 
   const filteredQuestions = useMemo(() => {
     const normalizedSearchText = searchText.trim().toLowerCase();
@@ -281,16 +323,75 @@ export function LocalQuestionBank() {
 
       const matchesTopic = topicFilter === "all" || topic === topicFilter;
       const matchesDomain = domainFilter === "all" || domain === domainFilter;
+      const matchesReported =
+        !reportedOnly || reportedQuestionIds.has(question.id);
 
-      return matchesSearch && matchesTopic && matchesDomain;
+      return matchesSearch && matchesTopic && matchesDomain && matchesReported;
     });
-  }, [domainFilter, questions, searchText, topicFilter]);
+  }, [
+    domainFilter,
+    questions,
+    reportedOnly,
+    reportedQuestionIds,
+    searchText,
+    topicFilter,
+  ]);
 
   const singleAnswerCount = questions.filter(
     (question) => getSelectCount(question) === 1,
   ).length;
 
   const multiSelectCount = questions.length - singleAnswerCount;
+
+  function startReport(questionId: string) {
+    const existingReport = getReportForQuestion(reports, questionId);
+
+    setActiveReportQuestionId(questionId);
+    setReportReason(existingReport?.reason ?? "wrong-answer");
+    setReportNote(existingReport?.note ?? "");
+    setStatusMessage("");
+  }
+
+  function cancelReport() {
+    setActiveReportQuestionId(null);
+    setReportReason("wrong-answer");
+    setReportNote("");
+  }
+
+  function submitReport(questionId: string) {
+    const savedReport = saveLocalQuestionReport(
+      questionId,
+      reportReason,
+      reportNote.trim(),
+    );
+
+    setReports((currentReports) => {
+      const reportAlreadyExists = currentReports.some(
+        (report) => report.questionId === questionId,
+      );
+
+      if (reportAlreadyExists) {
+        return currentReports.map((report) =>
+          report.questionId === questionId ? savedReport : report,
+        );
+      }
+
+      return [...currentReports, savedReport];
+    });
+
+    setActiveReportQuestionId(null);
+    setReportNote("");
+    setReportReason("wrong-answer");
+    setStatusMessage("Question report saved locally.");
+  }
+
+  function clearReport(questionId: string) {
+    removeLocalQuestionReport(questionId);
+    setReports((currentReports) =>
+      currentReports.filter((report) => report.questionId !== questionId),
+    );
+    setStatusMessage("Question report cleared.");
+  }
 
   if (questions.length === 0) {
     return (
@@ -329,10 +430,11 @@ export function LocalQuestionBank() {
 
         <p className="mt-2 text-sm leading-6 text-slate-600">
           Browse the local AZ-900 practice questions currently built into the
-          app. Editing, disabling, deleting, and regeneration will come later.
+          app. You can now flag bad questions locally before database-backed
+          editing, disabling, deleting, and regeneration are added.
         </p>
 
-        <div className="mt-4 grid grid-cols-3 gap-3">
+        <div className="mt-4 grid grid-cols-4 gap-3">
           <div className="rounded-2xl bg-slate-100 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
               Total
@@ -353,7 +455,20 @@ export function LocalQuestionBank() {
             </p>
             <p className="mt-1 text-xl font-black">{multiSelectCount}</p>
           </div>
+
+          <div className="rounded-2xl bg-amber-50 px-4 py-3 text-amber-950">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]">
+              Flagged
+            </p>
+            <p className="mt-1 text-xl font-black">{reports.length}</p>
+          </div>
         </div>
+
+        {statusMessage ? (
+          <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
+            {statusMessage}
+          </p>
+        ) : null}
       </section>
 
       <section className="rounded-3xl border border-white/10 bg-white px-5 py-5 text-slate-950">
@@ -424,9 +539,20 @@ export function LocalQuestionBank() {
           </div>
         </div>
 
+        <label className="mt-4 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950">
+          <input
+            type="checkbox"
+            checked={reportedOnly}
+            onChange={(event) => setReportedOnly(event.target.checked)}
+            className="h-4 w-4"
+          />
+          Show flagged questions only
+        </label>
+
         <p className="mt-3 text-xs leading-5 text-slate-500">
           Showing {filteredQuestions.length} of {questions.length} local
-          questions.
+          questions. {reports.length} question
+          {reports.length === 1 ? "" : "s"} flagged locally.
         </p>
       </section>
 
@@ -436,14 +562,16 @@ export function LocalQuestionBank() {
             <h2 className="text-lg font-bold">No matching questions</h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Try clearing the search box or choosing All domains and All
-              topics.
+              Try clearing the search box, choosing All domains and All topics,
+              or turning off flagged-only mode.
             </p>
           </div>
         ) : (
           filteredQuestions.map((question, index) => {
             const options = getOptions(question);
             const correctAnswerIds = getCorrectAnswerIds(question);
+            const report = getReportForQuestion(reports, question.id);
+            const isReportFormOpen = activeReportQuestionId === question.id;
 
             return (
               <article
@@ -462,6 +590,12 @@ export function LocalQuestionBank() {
                   <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-900">
                     {question.topic ?? "General"}
                   </span>
+
+                  {report ? (
+                    <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">
+                      Flagged
+                    </span>
+                  ) : null}
                 </div>
 
                 <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
@@ -471,6 +605,21 @@ export function LocalQuestionBank() {
                 <h2 className="mt-2 text-base font-bold leading-7">
                   {getQuestionText(question)}
                 </h2>
+
+                {report ? (
+                  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-amber-950">
+                    <p className="text-sm font-bold">Local report saved</p>
+                    <p className="mt-2 text-sm leading-6">
+                      Reason: {REPORT_REASON_LABELS[report.reason]}
+                    </p>
+
+                    {report.note ? (
+                      <p className="mt-2 text-sm leading-6">
+                        Note: {report.note}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 <div className="mt-4 space-y-2">
                   {options.map((option) => {
@@ -520,6 +669,92 @@ export function LocalQuestionBank() {
                       "No memory hook available yet."}
                   </p>
                 </div>
+
+                {isReportFormOpen ? (
+                  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-amber-950">
+                    <h3 className="text-base font-bold">Flag this question</h3>
+
+                    <label
+                      htmlFor={`report-reason-${question.id}`}
+                      className="mt-4 block text-sm font-bold"
+                    >
+                      Reason
+                    </label>
+
+                    <select
+                      id={`report-reason-${question.id}`}
+                      value={reportReason}
+                      onChange={(event) =>
+                        setReportReason(
+                          event.target.value as LocalQuestionReportReason,
+                        )
+                      }
+                      className="mt-2 w-full rounded-2xl border border-amber-300 bg-white px-4 py-3 text-sm font-semibold text-slate-950"
+                    >
+                      {Object.entries(REPORT_REASON_LABELS).map(
+                        ([reason, label]) => (
+                          <option key={reason} value={reason}>
+                            {label}
+                          </option>
+                        ),
+                      )}
+                    </select>
+
+                    <label
+                      htmlFor={`report-note-${question.id}`}
+                      className="mt-4 block text-sm font-bold"
+                    >
+                      Optional note
+                    </label>
+
+                    <textarea
+                      id={`report-note-${question.id}`}
+                      value={reportNote}
+                      onChange={(event) => setReportNote(event.target.value)}
+                      placeholder="Example: answer seems wrong, wording is confusing, or topic feels too advanced."
+                      rows={3}
+                      className="mt-2 w-full rounded-2xl border border-amber-300 bg-white px-4 py-3 text-sm font-semibold text-slate-950 outline-none focus:border-amber-500"
+                    />
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => submitReport(question.id)}
+                        className="rounded-2xl bg-amber-400 px-4 py-3 text-sm font-bold text-amber-950"
+                      >
+                        Save report
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={cancelReport}
+                        className="rounded-2xl border border-amber-300 bg-white px-4 py-3 text-sm font-bold text-amber-950"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => startReport(question.id)}
+                      className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-950"
+                    >
+                      {report ? "Edit report" : "Flag bad question"}
+                    </button>
+
+                    {report ? (
+                      <button
+                        type="button"
+                        onClick={() => clearReport(question.id)}
+                        className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700"
+                      >
+                        Clear report
+                      </button>
+                    ) : null}
+                  </div>
+                )}
               </article>
             );
           })
