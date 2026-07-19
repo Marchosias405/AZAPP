@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+
 import { APP_NAME } from "@/lib/constants/app";
 
 type AppShellProps = {
@@ -13,7 +14,11 @@ export function AppShell({ children }: AppShellProps) {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
             AZ-900 Study App
           </p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight">{APP_NAME}</h1>
+
+          <h1 className="mt-2 text-2xl font-bold tracking-tight">
+            {APP_NAME}
+          </h1>
+
           <p className="mt-2 text-sm leading-6 text-slate-300">
             Built for quick phone-friendly study sessions while commuting.
           </p>
@@ -21,9 +26,9 @@ export function AppShell({ children }: AppShellProps) {
 
         <section className="flex-1">{children}</section>
 
-        <footer className="mt-6 pb-2 text-center text-xs text-slate-500">
-          Local mode only. Results are saved in this browser until Supabase is
-          added later.
+        <footer className="mt-6 pb-2 text-center text-xs leading-5 text-slate-500">
+          Local mode only. Exam history and question settings are saved in this
+          browser.
         </footer>
       </div>
     </main>
