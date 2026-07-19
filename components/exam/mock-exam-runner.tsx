@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+
 import { MockQuestionCard } from "@/components/exam/mock-question-card";
-import type { LocalQuestion } from "@/lib/exam/types";
-import type { QuestionAnswerRecord } from "@/lib/exam/sessionTypes";
+import { saveLocalExamResult } from "@/lib/exam/examHistory";
 import { buildLocalExamResult } from "@/lib/exam/score";
-import { LOCAL_EXAM_RESULT_STORAGE_KEY } from "@/lib/exam/storage";
+import type { QuestionAnswerRecord } from "@/lib/exam/sessionTypes";
+import type { LocalQuestion } from "@/lib/exam/types";
 
 type MockExamRunnerProps = {
   questions: LocalQuestion[];
@@ -18,13 +19,17 @@ export function MockExamRunner({ questions }: MockExamRunnerProps) {
   const [answerRecords, setAnswerRecords] = useState<
     Record<string, QuestionAnswerRecord>
   >({});
+  const [isSavingResult, setIsSavingResult] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   const currentQuestion = questions[currentQuestionIndex];
   const currentQuestionNumber = currentQuestionIndex + 1;
   const currentAnswerRecord = answerRecords[currentQuestion.id];
 
   const answeredCount = Object.keys(answerRecords).length;
-  const progressPercent = Math.round((answeredCount / questions.length) * 100);
+  const progressPercent = Math.round(
+    (answeredCount / questions.length) * 100,
+  );
 
   const currentScorePreview = useMemo(() => {
     const correctSoFar = Object.values(answerRecords).filter(
@@ -49,7 +54,7 @@ export function MockExamRunner({ questions }: MockExamRunnerProps) {
   }
 
   function goToPreviousQuestion() {
-    if (!hasPreviousQuestion) {
+    if (!hasPreviousQuestion || isSavingResult) {
       return;
     }
 
@@ -57,7 +62,7 @@ export function MockExamRunner({ questions }: MockExamRunnerProps) {
   }
 
   function goToNextQuestion() {
-    if (!hasSubmittedCurrentQuestion) {
+    if (!hasSubmittedCurrentQuestion || isSavingResult) {
       return;
     }
 
@@ -66,17 +71,23 @@ export function MockExamRunner({ questions }: MockExamRunnerProps) {
       return;
     }
 
-    const result = buildLocalExamResult({
-      questions,
-      answerRecords,
-    });
+    setIsSavingResult(true);
+    setSaveError("");
 
-    window.localStorage.setItem(
-      LOCAL_EXAM_RESULT_STORAGE_KEY,
-      JSON.stringify(result),
-    );
+    try {
+      const result = buildLocalExamResult({
+        questions,
+        answerRecords,
+      });
 
-    router.push("/mock-exam/results");
+      saveLocalExamResult(result);
+      router.push("/mock-exam/results");
+    } catch {
+      setIsSavingResult(false);
+      setSaveError(
+        "Your result could not be saved in this browser. Try finishing the exam again.",
+      );
+    }
   }
 
   return (
@@ -87,6 +98,7 @@ export function MockExamRunner({ questions }: MockExamRunnerProps) {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
               Exam progress
             </p>
+
             <h2 className="mt-2 text-lg font-bold text-white">
               {answeredCount}/{questions.length} answered
             </h2>
@@ -94,7 +106,6 @@ export function MockExamRunner({ questions }: MockExamRunnerProps) {
 
           <div className="rounded-2xl bg-white px-4 py-3 text-right text-sm font-semibold text-slate-950">
             {currentScorePreview.correctSoFar}/{questions.length} correct
-            
           </div>
         </div>
 
@@ -115,15 +126,24 @@ export function MockExamRunner({ questions }: MockExamRunnerProps) {
         question={currentQuestion}
         questionNumber={currentQuestionNumber}
         totalQuestions={questions.length}
-        initialSelectedAnswerIds={currentAnswerRecord?.selectedAnswerIds ?? []}
+        initialSelectedAnswerIds={
+          currentAnswerRecord?.selectedAnswerIds ?? []
+        }
         initialHasSubmitted={Boolean(currentAnswerRecord)}
         onSubmittedAnswer={handleSubmittedAnswer}
       />
 
+      {saveError ? (
+        <section className="rounded-3xl border border-rose-300 bg-rose-50 px-5 py-4 text-rose-950">
+          <p className="text-sm font-bold">Result was not saved</p>
+          <p className="mt-2 text-sm leading-6">{saveError}</p>
+        </section>
+      ) : null}
+
       <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
-          disabled={!hasPreviousQuestion}
+          disabled={!hasPreviousQuestion || isSavingResult}
           onClick={goToPreviousQuestion}
           className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 text-center text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-white/5 disabled:text-slate-500"
         >
@@ -132,11 +152,15 @@ export function MockExamRunner({ questions }: MockExamRunnerProps) {
 
         <button
           type="button"
-          disabled={!hasSubmittedCurrentQuestion}
+          disabled={!hasSubmittedCurrentQuestion || isSavingResult}
           onClick={goToNextQuestion}
           className="rounded-2xl bg-cyan-300 px-4 py-4 text-center text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:bg-white/5 disabled:text-slate-500 disabled:ring-1 disabled:ring-white/10"
         >
-          {hasNextQuestion ? "Next" : "Finish exam"}
+          {isSavingResult
+            ? "Saving result..."
+            : hasNextQuestion
+              ? "Next"
+              : "Finish exam"}
         </button>
       </div>
     </div>
