@@ -12,7 +12,7 @@ export const DASHBOARD_CARDS: DashboardCard[] = [
   {
     title: "Start Mock Exam",
     description:
-      "Practice AZ-900 questions one at a time with a mobile-friendly exam flow.",
+      "Take a mobile-friendly exam using up to five active questions. Non-mastered questions are prioritized.",
     href: "/mock-exam",
     status: "ready",
     buttonLabel: "Start mock exam",
@@ -20,41 +20,41 @@ export const DASHBOARD_CARDS: DashboardCard[] = [
   {
     title: "Mistakes Only",
     description:
-      "Practice only the questions you missed in your local mock exams.",
+      "Practice questions you previously missed across your saved local exam attempts.",
     href: "/mistakes",
     status: "ready",
     buttonLabel: "Practice mistakes",
   },
   {
-    title: "Review All Mistakes",
+    title: "Review Latest Mistakes",
     description:
-      "Review missed questions with explanations, correct answers, and memory hooks.",
+      "Review mistakes from your latest exam with correct answers, explanations, and memory hooks.",
     href: "/mistakes/review",
     status: "ready",
-    buttonLabel: "Review mistakes",
+    buttonLabel: "Review latest mistakes",
   },
   {
     title: "Progress Stats",
     description:
-      "See your latest local exam score, weak topics, strong topics, and recommended focus.",
+      "Review saved attempt history, overall accuracy, recent scores, and performance by topic.",
     href: "/stats",
     status: "ready",
     buttonLabel: "View stats",
   },
   {
-    title: "Generate More Questions",
-    description:
-      "Generate original AZ-900-style questions with validation before saving.",
-    href: "/generate",
-    status: "locked",
-    buttonLabel: "Coming later",
-  },
-  {
     title: "Question Bank",
     description:
-      "Browse all local questions, filter by domain/topic, and review explanations before taking an exam.",
+      "Search local questions, review answers, flag problems, disable bad questions, and manage mastered status.",
     href: "/question-bank",
     status: "ready",
     buttonLabel: "Open question bank",
+  },
+  {
+    title: "Generate More Questions",
+    description:
+      "Generate original AZ-900-style questions after local validation and database foundations are complete.",
+    href: "/generate",
+    status: "locked",
+    buttonLabel: "Coming later",
   },
 ];
