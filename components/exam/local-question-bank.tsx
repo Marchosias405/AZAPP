@@ -1100,12 +1100,19 @@ export function LocalQuestionBank() {
         )}
       </section>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
         <Link
           href="/mock-exam"
           className="block w-full rounded-2xl bg-cyan-300 px-4 py-4 text-center text-sm font-semibold text-slate-950"
         >
           Start mock exam
+        </Link>
+
+        <Link
+          href="/question-bank/validation"
+          className="block w-full rounded-2xl border border-indigo-300 bg-indigo-50 px-4 py-4 text-center text-sm font-semibold text-indigo-950"
+        >
+          Validate questions
         </Link>
 
         <Link
