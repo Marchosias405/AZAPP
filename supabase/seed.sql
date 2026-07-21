@@ -1,0 +1,4 @@
+-- Part 19 intentionally contains no seed data.
+-- Local questions remain in lib/exam/localQuestions.ts for now.
+-- Generated and local questions will be migrated only after the schema,
+-- ownership model, and save workflow have been tested.
