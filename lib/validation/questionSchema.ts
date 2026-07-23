@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 
 import {
   AZ900_ALLOWED_TOPICS,
@@ -50,6 +50,22 @@ export const localQuestionSchema = z
   })
   .strict();
 
+/*
+ * AI providers generate the question content only.
+ * The application assigns the permanent question ID server-side.
+ *
+ * This schema is derived from the canonical local-question schema so the
+ * application does not maintain a second, conflicting question format.
+ */
+export const generatedQuestionDraftSchema =
+  localQuestionSchema.omit({
+    id: true,
+  });
+
 export type ValidatedLocalQuestion = z.infer<
   typeof localQuestionSchema
+>;
+
+export type ValidatedGeneratedQuestionDraft = z.infer<
+  typeof generatedQuestionDraftSchema
 >;
