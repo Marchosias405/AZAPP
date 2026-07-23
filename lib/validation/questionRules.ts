@@ -23,7 +23,7 @@ export type QuestionBankValidationSummary = {
   results: QuestionValidationResult[];
 };
 
-const EXPECTED_SELECT_COUNTS: Record<QuestionType, number> = {
+export const EXPECTED_SELECT_COUNTS: Record<QuestionType, number> = {
   "single-answer": 1,
   "choose-2": 2,
   "choose-3": 3,
