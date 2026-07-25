@@ -52,9 +52,9 @@ export const DASHBOARD_CARDS: DashboardCard[] = [
   {
     title: "Generate More Questions",
     description:
-      "Generate original AZ-900-style questions after local validation and database foundations are complete.",
+      "Generate one validated AZ-900-style question with Gemini, then review and edit it before anything is saved.",
     href: "/generate",
-    status: "locked",
-    buttonLabel: "Coming later",
+    status: "ready",
+    buttonLabel: "Generate question",
   },
 ];

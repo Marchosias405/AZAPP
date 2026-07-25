@@ -18,8 +18,7 @@ export const QUESTION_TYPES = [
   "common-confusion",
 ] as const;
 
-export const AZ900_ALLOWED_TOPICS = [
-  // Cloud concepts
+const CLOUD_CONCEPT_TOPICS = [
   "Cloud computing",
   "Shared responsibility model",
   "Public cloud",
@@ -37,8 +36,9 @@ export const AZ900_ALLOWED_TOPICS = [
   "IaaS",
   "PaaS",
   "SaaS",
+] as const;
 
-  // Azure architecture and services
+const AZURE_ARCHITECTURE_AND_SERVICES_TOPICS = [
   "Azure regions",
   "Region pairs",
   "Sovereign regions",
@@ -83,8 +83,9 @@ export const AZ900_ALLOWED_TOPICS = [
   "Zero Trust",
   "Defense in depth",
   "Microsoft Defender for Cloud",
+] as const;
 
-  // Azure management and governance
+const AZURE_MANAGEMENT_AND_GOVERNANCE_TOPICS = [
   "Azure cost factors",
   "Pricing calculator",
   "Cost Management",
@@ -107,7 +108,24 @@ export const AZ900_ALLOWED_TOPICS = [
   "Azure Monitor alerts",
   "Application Insights",
 
-  // Current combined local-question topics
+  // Combined topics already used by local questions.
   "Azure RBAC, Policy, and resource locks",
   "Azure Monitor and Azure Service Health",
+] as const;
+
+export const AZ900_TOPICS_BY_DOMAIN = {
+  "Describe cloud concepts": CLOUD_CONCEPT_TOPICS,
+  "Describe Azure architecture and services":
+    AZURE_ARCHITECTURE_AND_SERVICES_TOPICS,
+  "Describe Azure management and governance":
+    AZURE_MANAGEMENT_AND_GOVERNANCE_TOPICS,
+} as const satisfies Record<
+  (typeof AZ900_DOMAINS)[number],
+  readonly string[]
+>;
+
+export const AZ900_ALLOWED_TOPICS = [
+  ...CLOUD_CONCEPT_TOPICS,
+  ...AZURE_ARCHITECTURE_AND_SERVICES_TOPICS,
+  ...AZURE_MANAGEMENT_AND_GOVERNANCE_TOPICS,
 ] as const;
