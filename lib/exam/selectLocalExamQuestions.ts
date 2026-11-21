@@ -5,6 +5,7 @@ export const LOCAL_MOCK_EXAM_MAX_QUESTIONS = 5;
 type SelectLocalExamQuestionsOptions = {
   questions: LocalQuestion[];
   masteredQuestionIds: ReadonlySet<string>;
+  missedQuestionIds?: ReadonlySet<string>;
   maxQuestions?: number;
   random?: () => number;
 };
@@ -34,6 +35,7 @@ function shuffleQuestions(
 export function selectLocalExamQuestions({
   questions,
   masteredQuestionIds,
+  missedQuestionIds = new Set<string>(),
   maxQuestions = LOCAL_MOCK_EXAM_MAX_QUESTIONS,
   random = Math.random,
 }: SelectLocalExamQuestionsOptions): LocalQuestion[] {
@@ -46,33 +48,24 @@ export function selectLocalExamQuestions({
     return [];
   }
 
+  const retries = shuffleQuestions(
+    questions.filter((question) => missedQuestionIds.has(question.id)),
+    random,
+  ).slice(0, questionLimit);
+  const remaining = questions.filter((question) => !missedQuestionIds.has(question.id));
   const nonMasteredQuestions = shuffleQuestions(
-    questions.filter(
+    remaining.filter(
       (question) => !masteredQuestionIds.has(question.id),
     ),
     random,
   );
 
   const masteredQuestions = shuffleQuestions(
-    questions.filter((question) => masteredQuestionIds.has(question.id)),
+    remaining.filter((question) => masteredQuestionIds.has(question.id)),
     random,
   );
 
-  const selectedNonMasteredQuestions = nonMasteredQuestions.slice(
-    0,
-    questionLimit,
-  );
-
-  const remainingQuestionSlots =
-    questionLimit - selectedNonMasteredQuestions.length;
-
-  const selectedMasteredQuestions = masteredQuestions.slice(
-    0,
-    remainingQuestionSlots,
-  );
-
-  return shuffleQuestions(
-    [...selectedNonMasteredQuestions, ...selectedMasteredQuestions],
-    random,
-  );
+  const otherQuestions = [...nonMasteredQuestions, ...masteredQuestions]
+    .slice(0, questionLimit - retries.length);
+  return [...retries, ...shuffleQuestions(otherQuestions, random)];
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { LocalQuestion, QuestionType } from "@/lib/exam/types";
 import { areAnswerSetsEqual, formatAnswerList } from "@/lib/exam/grading";
 import { buildAnswerRecord } from "@/lib/exam/score";
@@ -13,7 +13,7 @@ type MockQuestionCardProps = {
   totalQuestions: number;
   initialSelectedAnswerIds?: string[];
   initialHasSubmitted?: boolean;
-  onSubmittedAnswer?: (answerRecord: QuestionAnswerRecord) => void;
+  onSubmittedAnswer?: (answerRecord: QuestionAnswerRecord) => void | boolean;
 };
 
 const questionTypeLabels: Record<QuestionType, string> = {
@@ -46,8 +46,6 @@ export function MockQuestionCard({
   const [hasSubmitted, setHasSubmitted] = useState(initialHasSubmitted);
   const [selectionMessage, setSelectionMessage] = useState("");
 
-  const initialSelectedKey = initialSelectedAnswerIds.join("|");
-
   const correctAnswerSet = useMemo(
     () => new Set(question.correctAnswerIds),
     [question.correctAnswerIds],
@@ -65,15 +63,6 @@ export function MockQuestionCard({
     .filter((option) => correctAnswerSet.has(option.id))
     .map((option) => `${option.id}. ${option.text}`)
     .join(" | ");
-
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      setSelectedAnswerIds(initialSelectedAnswerIds);
-      setHasSubmitted(initialHasSubmitted);
-      setSelectionMessage("");
-    });
-  }, [question.id, initialSelectedKey, initialHasSubmitted, initialSelectedAnswerIds]);
 
 
   function handleOptionClick(optionId: string) {
@@ -127,9 +116,9 @@ export function MockQuestionCard({
       isCorrect,
     });
 
+    if (onSubmittedAnswer?.(answerRecord) === false) return;
     setHasSubmitted(true);
     setSelectionMessage("");
-    onSubmittedAnswer?.(answerRecord);
   }
 
   function getOptionClassName(optionId: string) {
@@ -185,7 +174,7 @@ export function MockQuestionCard({
 
       <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">
         {hasSubmitted
-          ? "Answer submitted. Review the feedback below, then move to the next question."
+          ? "Answer submitted. Review the feedback below."
           : getInstructionText(question.selectCount)}
       </div>
 

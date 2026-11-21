@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useMemo } from "react";
+import { useId, useMemo, useState } from "react";
 
 import { StatusPill } from "@/components/ui/status-pill";
 import type { LocalQuestion } from "@/lib/exam/types";
@@ -40,6 +40,80 @@ function getQuestionTypeLabel(question: LocalQuestion): string {
   }
 }
 
+function AnswerOptionCard({
+  option,
+  checked,
+  selectionDisabled,
+  onToggle,
+  onTextChange,
+}: {
+  option: LocalQuestion["options"][number];
+  checked: boolean;
+  selectionDisabled: boolean;
+  onToggle: () => void;
+  onTextChange: (text: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const textId = useId();
+
+  return (
+    <div
+      role="group"
+      aria-label={`Option ${option.id}`}
+      className={`relative rounded-2xl ring-2 ring-inset has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-cyan-700 ${checked
+        ? "bg-cyan-50 ring-cyan-700"
+        : "bg-white ring-slate-200"
+      }`}
+    >
+      <label
+        className={`block rounded-xl px-4 py-3 ${selectionDisabled
+          ? "cursor-not-allowed"
+          : "cursor-pointer hover:bg-cyan-100/50"
+        }`}
+      >
+        <span className="flex min-h-8 items-center gap-2 pr-20 text-sm font-bold">
+          <input
+            type="checkbox"
+            checked={checked}
+            disabled={selectionDisabled}
+            onChange={onToggle}
+            aria-label={`Mark option ${option.id} as correct`}
+            aria-describedby={editing ? "correct-answer-instructions" : `${textId} correct-answer-instructions`}
+            className="size-5 shrink-0 accent-cyan-700 [color-scheme:light]"
+          />
+          Option {option.id}
+        </span>
+        {!editing && (
+          <span id={textId} className="mt-1 block whitespace-pre-wrap break-words text-sm leading-6 text-slate-900">
+            {option.text || "Empty answer"}
+          </span>
+        )}
+      </label>
+      {editing && (
+        <div className="px-4 pb-3">
+          <textarea
+            autoFocus
+            aria-label={`Option ${option.id}`}
+            rows={3}
+            value={option.text}
+            onChange={(event) => onTextChange(event.target.value)}
+            className={FIELD_CLASS_NAME}
+          />
+        </div>
+      )}
+      <button
+        type="button"
+        aria-label={editing ? `Done editing option ${option.id}` : `Edit option ${option.id} text`}
+        aria-expanded={editing}
+        onClick={() => setEditing(!editing)}
+        className="absolute right-1 top-1 min-h-11 min-w-14 rounded-xl px-3 text-sm font-semibold text-cyan-800 underline underline-offset-4 hover:bg-cyan-100 focus-visible:ring-2 focus-visible:ring-cyan-800"
+      >
+        {editing ? "Done" : "Edit text"}
+      </button>
+    </div>
+  );
+}
+
 export function GeneratedQuestionEditor({
   question,
   provider,
@@ -60,6 +134,8 @@ export function GeneratedQuestionEditor({
     [question],
   );
   const isBusy = isSaving || isRegenerating;
+  const multiAnswerLimitReached =
+    question.selectCount > 1 && question.correctAnswerIds.length >= question.selectCount;
 
   function updateQuestion(
     updates: Partial<LocalQuestion>,
@@ -96,10 +172,11 @@ export function GeneratedQuestionEditor({
 
     if (isSelected) {
       selectedAnswerIds.delete(optionId);
-    } else if (
-      selectedAnswerIds.size < question.selectCount
-    ) {
+    } else if (!multiAnswerLimitReached) {
+      if (question.selectCount === 1) selectedAnswerIds.clear();
       selectedAnswerIds.add(optionId);
+    } else {
+      return;
     }
 
     updateQuestion({
@@ -218,11 +295,11 @@ export function GeneratedQuestionEditor({
                 {question.selectCount === 1
                   ? "answer"
                   : "answers"}
-                .
+                .{multiAnswerLimitReached && " Deselect one to choose another."}
               </p>
             </div>
 
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+            <span role="status" aria-atomic="true" className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
               {question.correctAnswerIds.length}/
               {question.selectCount} selected
             </span>
@@ -235,56 +312,15 @@ export function GeneratedQuestionEditor({
                   option.id,
                 );
 
-              const answerLimitReached =
-                question.correctAnswerIds.length >=
-                question.selectCount;
-
               return (
-                <div
-                  key={option.id}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="mt-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
-                      {option.id}
-                    </span>
-
-                    <label className="flex-1 text-sm font-bold">
-                      Option {option.id}
-                      <textarea
-                        rows={3}
-                        value={option.text}
-                        onChange={(event) =>
-                          updateOptionText(
-                            option.id,
-                            event.target.value,
-                          )
-                        }
-                        className={FIELD_CLASS_NAME}
-                      />
-                    </label>
-                  </div>
-
-                  <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold">
-                    <input
-                      type="checkbox"
-                      checked={isCorrect}
-                      disabled={
-                        !isCorrect &&
-                        answerLimitReached
-                      }
-                      aria-describedby="correct-answer-instructions"
-                      onChange={() =>
-                        toggleCorrectAnswer(option.id)
-                      }
-                      className="h-5 w-5 rounded border-slate-300"
-                    />
-
-                    <span>
-                      Mark option {option.id} as correct
-                    </span>
-                  </label>
-                </div>
+                <AnswerOptionCard
+                  key={`${question.id}-${option.id}`}
+                  option={option}
+                  checked={isCorrect}
+                  selectionDisabled={isBusy || (!isCorrect && multiAnswerLimitReached)}
+                  onToggle={() => toggleCorrectAnswer(option.id)}
+                  onTextChange={(text) => updateOptionText(option.id, text)}
+                />
               );
             })}
           </div>

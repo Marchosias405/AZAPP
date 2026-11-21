@@ -14,13 +14,12 @@ export default function MockExamPage() {
           </p>
 
           <h2 className="mt-2 text-xl font-bold text-white">
-            Score calculation mode
+            Test your knowledge
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-cyan-50/80">
-            Complete up to five active local questions to see your score and
-            missed questions. Disabled questions are excluded, and
-            non-mastered questions are selected before mastered questions.
+            Answer up to five questions. Missed questions get priority until
+            you answer them correctly. Submit each answer for feedback.
           </p>
         </section>
 

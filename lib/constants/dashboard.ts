@@ -12,7 +12,7 @@ export const DASHBOARD_CARDS: DashboardCard[] = [
   {
     title: "Start Mock Exam",
     description:
-      "Take a mobile-friendly exam using up to five active questions. Non-mastered questions are prioritized.",
+      "Answer up to five questions and get feedback. Recent misses get priority.",
     href: "/mock-exam",
     status: "ready",
     buttonLabel: "Start mock exam",
@@ -20,7 +20,7 @@ export const DASHBOARD_CARDS: DashboardCard[] = [
   {
     title: "Mistakes Only",
     description:
-      "Practice questions you previously missed across your saved local exam attempts.",
+      "Retry the questions you missed. Each one leaves the list when you answer it correctly.",
     href: "/mistakes",
     status: "ready",
     buttonLabel: "Practice mistakes",
@@ -50,11 +50,11 @@ export const DASHBOARD_CARDS: DashboardCard[] = [
     buttonLabel: "Open question bank",
   },
   {
-    title: "Generate More Questions",
+    title: "Practice by Topic",
     description:
-      "Review a Gemini draft, edit its answers and explanation, and save it to Supabase.",
+      "Choose a topic and difficulty, answer a generated question, and see the explanation.",
     href: "/generate",
     status: "ready",
-    buttonLabel: "Generate question",
+    buttonLabel: "Choose a topic",
   },
 ];

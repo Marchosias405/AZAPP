@@ -1,3 +1,8 @@
+import { getLocalExamHistory } from "@/lib/exam/examHistory";
+import { LOCAL_MOCK_QUESTIONS } from "@/lib/exam/localQuestions";
+import type { LocalQuestion } from "@/lib/exam/types";
+import { localQuestionSchema } from "@/lib/validation/questionSchema";
+
 export type MistakesPracticeAnswer = {
   questionId: string;
   selectedAnswerIds: string[];
@@ -21,225 +26,92 @@ export type MistakesPracticeSession = {
 };
 
 const MISTAKES_PRACTICE_SESSIONS_KEY = "az900-mistakes-practice-sessions";
+const MISSED_QUESTION_PREFIX = "az900-practice-outcome:";
 
-function safeJsonParse(value: string): unknown | null {
+function readJson(raw: string | null): unknown {
+  if (!raw) return null;
   try {
-    return JSON.parse(value);
+    return JSON.parse(raw);
   } catch {
     return null;
   }
 }
 
-function getStringValue(value: unknown): string | null {
-  if (typeof value === "string" && value.trim().length > 0) {
-    return value;
-  }
-
-  if (typeof value === "number") {
-    return String(value);
-  }
-
-  return null;
-}
-
-function getQuestionIdFromRecord(record: Record<string, unknown>): string | null {
-  const directQuestionId = getStringValue(record.questionId);
-
-  if (directQuestionId) {
-    return directQuestionId;
-  }
-
-  const directId = getStringValue(record.id);
-
-  if (directId) {
-    return directId;
-  }
-
-  const nestedQuestion = record.question;
-
-  if (
-    nestedQuestion &&
-    typeof nestedQuestion === "object" &&
-    !Array.isArray(nestedQuestion)
-  ) {
-    const nestedRecord = nestedQuestion as Record<string, unknown>;
-
-    return getStringValue(nestedRecord.id) ?? getStringValue(nestedRecord.questionId);
-  }
-
-  return null;
-}
-
-function isWrongAnswerRecord(record: Record<string, unknown>): boolean {
-  if (record.isCorrect === false) {
-    return true;
-  }
-
-  if (record.correct === false) {
-    return true;
-  }
-
-  if (record.wasCorrect === false) {
-    return true;
-  }
-
-  const status = getStringValue(record.status)?.toLowerCase();
-  const result = getStringValue(record.result)?.toLowerCase();
-
-  return (
-    status === "wrong" ||
-    status === "incorrect" ||
-    status === "missed" ||
-    result === "wrong" ||
-    result === "incorrect" ||
-    result === "missed"
-  );
-}
-
-function addQuestionIdsDeep(value: unknown, ids: Set<string>, depth = 0): void {
-  if (!value || depth > 8) {
-    return;
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      addQuestionIdsDeep(item, ids, depth + 1);
-    }
-
-    return;
-  }
-
-  if (typeof value !== "object") {
-    return;
-  }
-
-  const record = value as Record<string, unknown>;
-  const questionId = getQuestionIdFromRecord(record);
-
-  if (questionId) {
-    ids.add(questionId);
-  }
-
-  for (const nestedValue of Object.values(record)) {
-    if (typeof nestedValue === "object") {
-      addQuestionIdsDeep(nestedValue, ids, depth + 1);
-    }
+// Each answer updates a single storage entry, including when different tabs
+// are studying different questions. Generated questions need their full text
+// and choices because they cannot be looked up in the bundled question set.
+export function recordPracticeOutcome(question: LocalQuestion, isCorrect: boolean): void {
+  const key = MISSED_QUESTION_PREFIX + question.id;
+  if (!isCorrect) {
+    window.localStorage.setItem(key, JSON.stringify(question));
+  } else if (LOCAL_MOCK_QUESTIONS.some((item) => item.id === question.id)) {
+    // This marker supersedes a miss recorded by an older version of the app.
+    window.localStorage.setItem(key, "null");
+  } else {
+    window.localStorage.removeItem(key);
   }
 }
 
-function collectWrongQuestionIds(value: unknown, ids: Set<string>, depth = 0): void {
-  if (!value || depth > 8) {
-    return;
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      collectWrongQuestionIds(item, ids, depth + 1);
-    }
-
-    return;
-  }
-
-  if (typeof value !== "object") {
-    return;
-  }
-
-  const record = value as Record<string, unknown>;
-
-  const missedCollections = [
-    record.missedQuestions,
-    record.mistakes,
-    record.wrongQuestions,
-    record.wrongAnswers,
-    record.incorrectAnswers,
-  ];
-
-  for (const collection of missedCollections) {
-    if (collection) {
-      addQuestionIdsDeep(collection, ids, depth + 1);
+function getHistoricalMisses(): Map<string, LocalQuestion> {
+  const latest = new Map<string, { at: number; correct: boolean }>();
+  function remember(id: string, correct: boolean, date: string) {
+    const at = Date.parse(date);
+    if (Number.isFinite(at) && at >= (latest.get(id)?.at ?? -Infinity)) {
+      latest.set(id, { at, correct });
     }
   }
 
-  const questionId = getQuestionIdFromRecord(record);
-
-  if (questionId && isWrongAnswerRecord(record)) {
-    ids.add(questionId);
-  }
-
-  for (const nestedValue of Object.values(record)) {
-    if (typeof nestedValue === "object") {
-      collectWrongQuestionIds(nestedValue, ids, depth + 1);
+  for (const exam of getLocalExamHistory()) {
+    for (const answer of exam.answers) {
+      remember(answer.questionId, answer.isCorrect, exam.completedAt);
     }
   }
+  for (const session of getMistakesPracticeSessions()) {
+    for (const answer of session.answers) {
+      if (answer && typeof answer.questionId === "string" && typeof answer.isCorrect === "boolean") {
+        remember(answer.questionId, answer.isCorrect, answer.answeredAt || session.completedAt);
+      }
+    }
+  }
+  return new Map(LOCAL_MOCK_QUESTIONS
+    .filter((question) => latest.get(question.id)?.correct === false)
+    .map((question) => [question.id, question]));
 }
 
-export function getMissedQuestionIdsFromBrowserStorage(): string[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  const ids = new Set<string>();
-
-  for (let index = 0; index < window.localStorage.length; index += 1) {
-    const key = window.localStorage.key(index);
-
-    if (!key) {
+export function getMissedQuestions(): LocalQuestion[] {
+  if (typeof window === "undefined") return [];
+  const missed = getHistoricalMisses();
+  const storage = window.localStorage;
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i);
+    if (!key?.startsWith(MISSED_QUESTION_PREFIX)) continue;
+    const id = key.slice(MISSED_QUESTION_PREFIX.length);
+    const raw = storage.getItem(key);
+    if (raw === "null") {
+      missed.delete(id);
       continue;
     }
-
-    const rawValue = window.localStorage.getItem(key);
-
-    if (!rawValue) {
-      continue;
+    const snapshot = localQuestionSchema.safeParse(readJson(raw));
+    if (snapshot.success && snapshot.data.id === id) {
+      missed.set(id, snapshot.data);
     }
-
-    const parsedValue = safeJsonParse(rawValue);
-
-    if (!parsedValue) {
-      continue;
-    }
-
-    collectWrongQuestionIds(parsedValue, ids);
   }
-
-  return Array.from(ids);
+  return Array.from(missed.values());
 }
 
 export function getMistakesPracticeSessions(): MistakesPracticeSession[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  const rawValue = window.localStorage.getItem(MISTAKES_PRACTICE_SESSIONS_KEY);
-
-  if (!rawValue) {
-    return [];
-  }
-
-  const parsedValue = safeJsonParse(rawValue);
-
-  if (!Array.isArray(parsedValue)) {
-    return [];
-  }
-
-  return parsedValue.filter(
-    (session): session is MistakesPracticeSession =>
-      Boolean(session) &&
-      typeof session === "object" &&
-      !Array.isArray(session) &&
-      (session as MistakesPracticeSession).mode === "mistakes-only",
+  if (typeof window === "undefined") return [];
+  const sessions = readJson(window.localStorage.getItem(MISTAKES_PRACTICE_SESSIONS_KEY));
+  if (!Array.isArray(sessions)) return [];
+  return sessions.filter((session): session is MistakesPracticeSession =>
+    session?.mode === "mistakes-only" && Array.isArray(session.answers),
   );
 }
 
 export function saveMistakesPracticeSession(session: MistakesPracticeSession): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  const existingSessions = getMistakesPracticeSessions();
-
+  const sessions = getMistakesPracticeSessions();
   window.localStorage.setItem(
     MISTAKES_PRACTICE_SESSIONS_KEY,
-    JSON.stringify([...existingSessions, session]),
+    JSON.stringify([...sessions, session]),
   );
 }

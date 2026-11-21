@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { MockQuestionCard } from "@/components/exam/mock-question-card";
 import { saveLocalExamResult } from "@/lib/exam/examHistory";
+import { recordPracticeOutcome } from "@/lib/exam/mistakeStorage";
 import { buildLocalExamResult } from "@/lib/exam/score";
 import type { QuestionAnswerRecord } from "@/lib/exam/sessionTypes";
 import type { LocalQuestion } from "@/lib/exam/types";
@@ -47,6 +48,13 @@ export function MockExamRunner({ questions }: MockExamRunnerProps) {
   const hasSubmittedCurrentQuestion = Boolean(currentAnswerRecord);
 
   function handleSubmittedAnswer(answerRecord: QuestionAnswerRecord) {
+    try {
+      recordPracticeOutcome(currentQuestion, answerRecord.isCorrect);
+    } catch {
+      setSaveError("Your practice progress could not be saved. Check browser storage and submit again.");
+      return false;
+    }
+    setSaveError("");
     setAnswerRecords((currentRecords) => ({
       ...currentRecords,
       [answerRecord.questionId]: answerRecord,
@@ -58,6 +66,7 @@ export function MockExamRunner({ questions }: MockExamRunnerProps) {
       return;
     }
 
+    setSaveError("");
     setCurrentQuestionIndex((currentIndex) => currentIndex - 1);
   }
 
@@ -123,18 +132,19 @@ export function MockExamRunner({ questions }: MockExamRunnerProps) {
       </section>
 
       <MockQuestionCard
+        key={currentQuestion.id}
         question={currentQuestion}
         questionNumber={currentQuestionNumber}
         totalQuestions={questions.length}
         initialSelectedAnswerIds={
-          currentAnswerRecord?.selectedAnswerIds ?? []
+          currentAnswerRecord?.selectedAnswerIds
         }
         initialHasSubmitted={Boolean(currentAnswerRecord)}
         onSubmittedAnswer={handleSubmittedAnswer}
       />
 
       {saveError ? (
-        <section className="rounded-3xl border border-rose-300 bg-rose-50 px-5 py-4 text-rose-950">
+        <section role="alert" className="rounded-3xl border border-rose-300 bg-rose-50 px-5 py-4 text-rose-950">
           <p className="text-sm font-bold">Result was not saved</p>
           <p className="mt-2 text-sm leading-6">{saveError}</p>
         </section>

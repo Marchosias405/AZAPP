@@ -4,7 +4,7 @@ A mobile-first web app for studying Microsoft Azure AZ-900 through mock exams, m
 
 ## Current Status
 
-Part 22 adds reviewed question saving in the development app. Generate a draft with Gemini at `/generate`, edit it, and confirm your review to save it to Supabase. Mock exams and mistake practice use the bundled questions.
+Use `/generate` in development to practice a topic with Gemini. Submit an answer to see the explanation. Missed questions are saved in this browser for `/mistakes` and future mock exams until answered correctly. The development authoring editor for reviewing and publishing questions to Supabase is at `/author/questions`.
 
 ## Local Setup
 
