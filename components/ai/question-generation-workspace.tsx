@@ -19,6 +19,7 @@ import {
   QUESTION_TYPES,
 } from "@/lib/constants/az900Topics";
 import type { LocalQuestion } from "@/lib/exam/types";
+import { validateLocalQuestion } from "@/lib/validation/questionRules";
 import { localQuestionSchema } from "@/lib/validation/questionSchema";
 
 type GenerationSettings = Pick<
@@ -36,8 +37,8 @@ type ApiErrorDetails = {
   message?: string;
 };
 
-type ApiResponsePayload = {
-  data?: GeneratedQuestionResult;
+type ApiResponsePayload<T> = {
+  data?: T;
   error?: {
     code?: string;
     message?: string;
@@ -78,11 +79,10 @@ const SELECT_CLASS_NAME =
   "mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 disabled:cursor-not-allowed disabled:bg-slate-100";
 
 function getApiErrorMessage(
-  payload: ApiResponsePayload | null,
+  payload: ApiResponsePayload<unknown> | null,
+  fallback: string,
 ): string {
-  const generalMessage =
-    payload?.error?.message ??
-    "The question could not be generated.";
+  const generalMessage = payload?.error?.message ?? fallback;
 
   const detailedMessages =
     payload?.error?.details
@@ -117,8 +117,11 @@ export function QuestionGenerationWorkspace() {
   const [generationDetails, setGenerationDetails] =
     useState<GenerationDetails | null>(null);
 
-  const [isGenerating, setIsGenerating] =
-    useState(false);
+  const [pending, setPending] = useState<"generate" | "save" | null>(null);
+  const isGenerating = pending === "generate";
+  const [reviewed, setReviewed] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [savedQuestionText, setSavedQuestionText] = useState("");
 
   const [generationError, setGenerationError] =
     useState("");
@@ -136,7 +139,9 @@ export function QuestionGenerationWorkspace() {
   }
 
   async function generatePreview() {
-    setIsGenerating(true);
+    if (pending) return;
+    setPending("generate");
+    setReviewed(false);
     setGenerationError("");
 
     try {
@@ -157,11 +162,11 @@ export function QuestionGenerationWorkspace() {
 
       const payload = (await response
         .json()
-        .catch(() => null)) as ApiResponsePayload | null;
+        .catch(() => null)) as ApiResponsePayload<GeneratedQuestionResult> | null;
 
       if (!response.ok || !payload?.data) {
         throw new Error(
-          getApiErrorMessage(payload),
+          getApiErrorMessage(payload, "The question could not be generated."),
         );
       }
 
@@ -177,6 +182,8 @@ export function QuestionGenerationWorkspace() {
       }
 
       setGeneratedQuestion(parsedQuestion.data);
+      setSaveError("");
+      setSavedQuestionText("");
       setGenerationDetails({
         provider: payload.data.provider,
         model: payload.data.model,
@@ -189,7 +196,7 @@ export function QuestionGenerationWorkspace() {
           : "The question could not be generated.",
       );
     } finally {
-      setIsGenerating(false);
+      setPending(null);
     }
   }
 
@@ -216,17 +223,51 @@ export function QuestionGenerationWorkspace() {
   function discardPreview() {
     setGeneratedQuestion(null);
     setGenerationDetails(null);
+    setReviewed(false);
+    setSaveError("");
     setGenerationError("");
+  }
+
+  function editPreview(question: LocalQuestion) {
+    setReviewed(false);
+    setSaveError("");
+    setGeneratedQuestion(question);
+  }
+
+  async function savePreview() {
+    if (pending || !reviewed || !generatedQuestion) return;
+    if (!validateLocalQuestion(generatedQuestion).isValid) return;
+
+    setPending("save");
+    setSaveError("");
+    const unconfirmed = "Could not confirm the save. Retry with this preview to check or complete the save.";
+    try {
+      const response = await fetch("/api/ai/save-question", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewed: true, question: generatedQuestion }),
+      });
+      const payload = (await response.json().catch(() => null)) as
+        ApiResponsePayload<{ id: string }> | null;
+      if (!response.ok) {
+        setSaveError(getApiErrorMessage(payload, unconfirmed));
+      } else if (!payload?.data?.id) {
+        setSaveError(unconfirmed);
+      } else {
+        setSavedQuestionText(generatedQuestion.questionText);
+        discardPreview();
+      }
+    } catch {
+      setSaveError(unconfirmed);
+    } finally {
+      setPending(null);
+    }
   }
 
   return (
     <div className="space-y-4">
       <section className="rounded-3xl border border-white/10 bg-white px-5 py-5 text-slate-950 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
-          <StatusPill
-            label="Part 21 preview"
-            tone="ready"
-          />
           <StatusPill
             label="Development only"
             tone="warning"
@@ -238,9 +279,8 @@ export function QuestionGenerationWorkspace() {
         </h1>
 
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Choose the question settings, generate one
-          validated draft with Gemini, and review every field
-          before a future save workflow is added.
+          Generate a draft with Gemini, review its contents, and save the
+          finished question to Supabase.
         </p>
 
         <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-950">
@@ -267,7 +307,7 @@ export function QuestionGenerationWorkspace() {
             Domain
             <select
               value={settings.domain}
-              disabled={isGenerating}
+              disabled={pending !== null}
               onChange={(event) =>
                 handleDomainChange(
                   event.target
@@ -291,7 +331,7 @@ export function QuestionGenerationWorkspace() {
             Topic
             <select
               value={settings.topic}
-              disabled={isGenerating}
+              disabled={pending !== null}
               onChange={(event) =>
                 updateSettings({
                   topic:
@@ -317,7 +357,7 @@ export function QuestionGenerationWorkspace() {
               Difficulty
               <select
                 value={settings.difficulty}
-                disabled={isGenerating}
+                disabled={pending !== null}
                 onChange={(event) =>
                   updateSettings({
                     difficulty:
@@ -344,7 +384,7 @@ export function QuestionGenerationWorkspace() {
               Question type
               <select
                 value={settings.questionType}
-                disabled={isGenerating}
+                disabled={pending !== null}
                 onChange={(event) =>
                   updateSettings({
                     questionType:
@@ -375,7 +415,7 @@ export function QuestionGenerationWorkspace() {
 
         <button
           type="submit"
-          disabled={isGenerating}
+          disabled={pending !== null}
           className="mt-6 w-full rounded-2xl bg-slate-900 px-4 py-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
         >
           {isGenerating
@@ -393,7 +433,9 @@ export function QuestionGenerationWorkspace() {
             ? "Gemini is generating and validating one question. This may take a moment."
             : generatedQuestion
               ? "A temporary preview is ready below."
-              : "No question has been generated yet."}
+              : savedQuestionText
+                ? "You can generate another question."
+                : "No question has been generated yet."}
         </div>
 
         {generationError ? (
@@ -411,6 +453,13 @@ export function QuestionGenerationWorkspace() {
         ) : null}
       </form>
 
+      {savedQuestionText && (
+        <section role="status" className="rounded-3xl bg-emerald-50 px-5 py-5 text-emerald-950">
+          <h2 className="font-bold">Question saved to Supabase</h2>
+          <p className="mt-2 text-sm">{savedQuestionText}</p>
+        </section>
+      )}
+
       {generatedQuestion && generationDetails ? (
         <GeneratedQuestionEditor
           question={generatedQuestion}
@@ -418,7 +467,12 @@ export function QuestionGenerationWorkspace() {
           model={generationDetails.model}
           factChecked={generationDetails.factChecked}
           isRegenerating={isGenerating}
-          onQuestionChange={setGeneratedQuestion}
+          isSaving={pending === "save"}
+          reviewed={reviewed}
+          saveError={saveError}
+          onReviewChange={setReviewed}
+          onSave={savePreview}
+          onQuestionChange={editPreview}
           onRegenerate={generatePreview}
           onDiscard={discardPreview}
         />

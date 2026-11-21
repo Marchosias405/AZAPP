@@ -52,7 +52,7 @@ export const DASHBOARD_CARDS: DashboardCard[] = [
   {
     title: "Generate More Questions",
     description:
-      "Generate one validated AZ-900-style question with Gemini, then review and edit it before anything is saved.",
+      "Review a Gemini draft, edit its answers and explanation, and save it to Supabase.",
     href: "/generate",
     status: "ready",
     buttonLabel: "Generate question",

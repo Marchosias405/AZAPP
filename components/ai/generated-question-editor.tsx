@@ -12,6 +12,11 @@ type GeneratedQuestionEditorProps = {
   model: string;
   factChecked: boolean;
   isRegenerating: boolean;
+  isSaving: boolean;
+  reviewed: boolean;
+  saveError: string;
+  onReviewChange: (reviewed: boolean) => void;
+  onSave: () => void;
   onQuestionChange: (question: LocalQuestion) => void;
   onRegenerate: () => void;
   onDiscard: () => void;
@@ -41,6 +46,11 @@ export function GeneratedQuestionEditor({
   model,
   factChecked,
   isRegenerating,
+  isSaving,
+  reviewed,
+  saveError,
+  onReviewChange,
+  onSave,
   onQuestionChange,
   onRegenerate,
   onDiscard,
@@ -49,6 +59,7 @@ export function GeneratedQuestionEditor({
     () => validateLocalQuestion(question),
     [question],
   );
+  const isBusy = isSaving || isRegenerating;
 
   function updateQuestion(
     updates: Partial<LocalQuestion>,
@@ -145,9 +156,8 @@ export function GeneratedQuestionEditor({
       </h2>
 
       <p className="mt-2 text-sm leading-6 text-slate-600">
-        Changes stay in this temporary browser preview.
-        Nothing is saved to Supabase or the local question
-        bank.
+        Check the answer choices, explanation, and source before saving.
+        Saved questions go to Supabase. Practice exams still use the local question bank.
       </p>
 
       <dl className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -179,7 +189,7 @@ export function GeneratedQuestionEditor({
         </div>
       </dl>
 
-      <div className="mt-6 space-y-5">
+      <fieldset disabled={isBusy} className="mt-6 space-y-5">
         <label className="block text-sm font-bold">
           Question text
           <textarea
@@ -340,7 +350,7 @@ export function GeneratedQuestionEditor({
             className={FIELD_CLASS_NAME}
           />
         </label>
-      </div>
+      </fieldset>
 
       <section
         className={
@@ -388,10 +398,36 @@ export function GeneratedQuestionEditor({
         )}
       </section>
 
+      <div className="mt-6 space-y-3">
+        <label className="flex items-start gap-3 text-sm font-semibold">
+          <input
+            type="checkbox"
+            checked={reviewed}
+            disabled={isBusy || !validationResult.isValid}
+            onChange={(event) => onReviewChange(event.target.checked)}
+            className="h-5 w-5 shrink-0"
+          />
+          I have reviewed this version of the question and its correct answers.
+        </label>
+        <button
+          type="button"
+          disabled={isBusy || !reviewed || !validationResult.isValid}
+          onClick={onSave}
+          className="w-full rounded-2xl bg-slate-900 px-4 py-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+        >
+          {isSaving ? "Saving..." : "Save reviewed question"}
+        </button>
+        {saveError && (
+          <p role="alert" className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-950">
+            {saveError}
+          </p>
+        )}
+      </div>
+
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <button
           type="button"
-          disabled={isRegenerating}
+          disabled={isBusy}
           onClick={onRegenerate}
           className="rounded-2xl bg-cyan-300 px-4 py-4 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
         >
@@ -402,7 +438,7 @@ export function GeneratedQuestionEditor({
 
         <button
           type="button"
-          disabled={isRegenerating}
+          disabled={isBusy}
           onClick={handleDiscard}
           className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-4 text-sm font-semibold text-rose-950 disabled:cursor-not-allowed disabled:opacity-50"
         >

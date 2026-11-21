@@ -27,8 +27,7 @@ export function AppShell({ children }: AppShellProps) {
         <section className="flex-1">{children}</section>
 
         <footer className="mt-6 pb-2 text-center text-xs leading-5 text-slate-500">
-          Local mode only. Exam history and question settings are saved in this
-          browser.
+          Exam history and practice settings are saved in this browser.
         </footer>
       </div>
     </main>

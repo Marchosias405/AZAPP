@@ -4,40 +4,7 @@ A mobile-first web app for studying Microsoft Azure AZ-900 through mock exams, m
 
 ## Current Status
 
-Part 1 is complete when the base Next.js app runs locally.
-
-Included so far:
-
-- Next.js App Router
-- TypeScript
-- Tailwind CSS
-- Mobile-first layout shell
-- GitHub-ready folder structure
-- Environment variable template
-- Guardrails documentation placeholder
-
-Not connected yet:
-
-- Supabase
-- Gemini API
-- OpenAI backup provider
-- Question generation
-- Mock exam logic
-- Mistake tracking
-- CI/CD
-- Vercel deployment
-
-## Tech Stack
-
-- Next.js
-- TypeScript
-- Tailwind CSS
-- Supabase later
-- Gemini API later
-- OpenAI API optional later
-- Zod later
-- GitHub Actions later
-- Vercel later
+Part 22 adds reviewed question saving in the development app. Generate a draft with Gemini at `/generate`, edit it, and confirm your review to save it to Supabase. Mock exams and mistake practice use the bundled questions.
 
 ## Local Setup
 
@@ -45,3 +12,6 @@ Install dependencies:
 
 ```bash
 npm install
+```
+
+Follow the [Part 22 setup and review workflow](docs/development-progress.md) to start local Supabase and the app.

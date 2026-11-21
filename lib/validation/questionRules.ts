@@ -1,3 +1,4 @@
+import { AZ900_TOPICS_BY_DOMAIN } from "@/lib/constants/az900Topics";
 import type { QuestionType } from "@/lib/exam/types";
 import {
   localQuestionSchema,
@@ -79,6 +80,11 @@ function getSemanticIssues(
     normalizeText(option.text),
   );
   const normalizedTags = question.tags.map(normalizeText);
+
+  const domainTopics: readonly string[] = AZ900_TOPICS_BY_DOMAIN[question.domain];
+  if (!domainTopics.includes(question.topic)) {
+    issues.push({ path: "topic", message: "Choose a topic in the selected AZ-900 domain." });
+  }
 
   if (new Set(optionIds).size !== optionIds.length) {
     issues.push({

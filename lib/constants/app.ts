@@ -4,19 +4,13 @@ export const APP_DESCRIPTION =
   "A mobile-first AZ-900 study app for mock exams, mistake tracking, progress history, validated AI question generation, and memory hooks.";
 
 export const PART_LABEL =
-  "Part 21: Question Generation Preview";
+  "Part 22: Save reviewed questions";
 
 export const CURRENT_PROGRESS_TITLE =
-  "AI question generation and editing are ready";
+  "Save reviewed questions to Supabase";
 
 export const CURRENT_PROGRESS_DESCRIPTION =
-  "The app can now generate one structured AZ-900-style question with Gemini, preview every generated field, rerun deterministic validation after edits, regenerate the draft, or discard it. Generated questions remain temporary and are not saved automatically.";
-
-export const NEXT_PART_LABEL =
-  "Next: Save reviewed questions";
-
-export const NEXT_PART_DESCRIPTION =
-  "Next, add a controlled save workflow so a reviewed and valid generated question can be stored without allowing unreviewed AI output into the question bank.";
+  "Generate a question with Gemini, check the answer and explanation, then confirm your review to save the edited question.";
 
 export const BUILD_STATUS_ITEMS = [
   "Mobile-first dashboard and app shell complete",
@@ -31,4 +25,5 @@ export const BUILD_STATUS_ITEMS = [
   "Version-controlled Supabase schema and typed clients complete",
   "Server-side Gemini provider and validated AI generation complete",
   "Editable AI question preview and regeneration workflow complete",
+  "Reviewed question and answer choices saved together in Supabase",
 ] as const;
