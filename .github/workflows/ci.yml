@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, 'codex/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify AZAPP
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - name: Check production routes
+        shell: bash
+        run: |
+          base=http://127.0.0.1:3000
+          node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          curl --fail --silent --show-error --retry 15 --retry-connrefused --retry-delay 1 --output /dev/null "$base/"
+
+          check_route() {
+            local method=$1 route=$2 expected=$3 status
+            status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --request "$method" "$base$route")
+            echo "$method $route returned $status (expected $expected)"
+            test "$status" = "$expected"
+          }
+
+          for route in / /mock-exam /mistakes /mistakes/review /question-bank /stats; do
+            check_route GET "$route" 200
+          done
+          check_route POST /api/ai/generate-question 404
+          check_route POST /api/ai/save-question 404

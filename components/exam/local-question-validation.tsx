@@ -18,11 +18,11 @@ export function LocalQuestionValidation() {
         </p>
 
         <h1 className="mt-3 text-2xl font-bold">
-          Local validation report
+          Built-in question validation
         </h1>
 
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          This report checks every local question against required
+          This report checks every built-in question against required
           structure and deterministic AZ-900 question rules.
         </p>
 
@@ -64,7 +64,7 @@ export function LocalQuestionValidation() {
         >
           <p className="text-sm font-bold">
             {allQuestionsValid
-              ? "All local questions passed"
+              ? "All built-in questions passed"
               : "Some questions need attention"}
           </p>
 
@@ -91,9 +91,8 @@ export function LocalQuestionValidation() {
         </ul>
 
         <p className="mt-4 rounded-2xl bg-white px-4 py-3 text-xs leading-5 text-indigo-800">
-          This deterministic check cannot prove that every Azure fact is
-          correct. Deeper factual review will remain a separate optional
-          validation step later.
+          Factual review is a separate step. Check each answer against the
+          cited Azure material before publishing a generated question.
         </p>
       </section>
 

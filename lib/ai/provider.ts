@@ -3,13 +3,12 @@ import "server-only";
 import type {
   AiProvider,
   AiProviderName,
+  AiStructuredOutputRequest,
 } from "@/lib/ai/contracts";
-import {
-  getAiConfig,
-  type AiConfig,
-} from "@/lib/ai/config";
+import type { AiConfig } from "@/lib/ai/config";
 import { AiError } from "@/lib/ai/errors";
 import { GeminiAiProvider } from "@/lib/ai/providers/gemini";
+import { OpenAiProvider } from "@/lib/ai/providers/openai";
 
 function createGeminiProvider(config: AiConfig): AiProvider {
   if (!config.geminiApiKey) {
@@ -41,35 +40,34 @@ function createOpenAiProvider(config: AiConfig): AiProvider {
     });
   }
 
-  throw new AiError({
-    code: "AI_PROVIDER_NOT_IMPLEMENTED",
-    message:
-      "The OpenAI provider is enabled but has not been implemented yet.",
-    status: 501,
-  });
+  return new OpenAiProvider(config.openAiApiKey);
 }
 
-export function getAiProvider(
-  providerName?: AiProviderName,
-): AiProvider {
-  const config = getAiConfig();
-  const selectedProvider =
-    providerName ?? config.defaultProvider;
-
-  switch (selectedProvider) {
-    case "gemini":
-      return createGeminiProvider(config);
-
-    case "openai":
-      return createOpenAiProvider(config);
-
-    default: {
-      const exhaustiveCheck: never = selectedProvider;
-
-      throw new AiError({
-        code: "AI_CONFIGURATION_ERROR",
-        message: `Unsupported AI provider: ${exhaustiveCheck}`,
+export async function requestStructuredOutput(
+  request: Omit<AiStructuredOutputRequest, "model">,
+  config: AiConfig,
+  requestedProvider?: AiProviderName,
+) {
+  const selectedProvider = requestedProvider ?? config.defaultProvider;
+  if (selectedProvider === "gemini") {
+    try {
+      return await createGeminiProvider(config).generateStructuredOutput({
+        ...request,
+        model: config.generationModel,
       });
+    } catch (error) {
+      const useBackup =
+        requestedProvider === undefined &&
+        config.enableOpenAiProvider &&
+        config.openAiApiKey &&
+        error instanceof AiError &&
+        (error.code === "AI_PROVIDER_UNAVAILABLE" || error.code === "AI_CONFIGURATION_ERROR");
+      if (!useBackup) throw error;
     }
   }
+
+  return createOpenAiProvider(config).generateStructuredOutput({
+    ...request,
+    model: config.openAiGenerationModel,
+  });
 }

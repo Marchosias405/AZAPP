@@ -1,18 +1,13 @@
 import { z } from "zod";
 import { getSupabaseServerAdminClient } from "@/lib/supabase/server";
 import { validateLocalQuestion } from "@/lib/validation/questionRules";
-import { localQuestionSchema } from "@/lib/validation/questionSchema";
+import { generatedQuestionSchema } from "@/lib/validation/questionSchema";
 
 export const runtime = "nodejs";
 
 const saveRequest = z.strictObject({
   reviewed: z.literal(true),
-  question: localQuestionSchema.extend({
-    id: z.string().regex(
-      /^generated-[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/,
-      "Expected the ID assigned to the generated preview.",
-    ),
-  }),
+  question: generatedQuestionSchema,
 });
 
 function failure(

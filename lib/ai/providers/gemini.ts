@@ -43,7 +43,7 @@ export class GeminiAiProvider implements AiProvider {
           mime_type: "application/json",
           schema: request.jsonSchema,
         },
-      });
+      }, { timeout: 45_000, maxRetries: 0 });
 
       const outputText = interaction.output_text?.trim();
 
@@ -66,8 +66,14 @@ export class GeminiAiProvider implements AiProvider {
         throw error;
       }
 
+      const status = error instanceof Error && "status" in error
+        ? error.status
+        : undefined;
+      const unavailable = status === undefined || status === 408 || status === 429 ||
+        (typeof status === "number" && status >= 500);
+
       throw new AiError({
-        code: "AI_PROVIDER_REQUEST_FAILED",
+        code: unavailable ? "AI_PROVIDER_UNAVAILABLE" : "AI_PROVIDER_REQUEST_FAILED",
         message:
           "Gemini could not generate a question. Check the server configuration and try again.",
         status: 502,

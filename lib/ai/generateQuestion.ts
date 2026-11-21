@@ -10,7 +10,7 @@ import type {
 } from "@/lib/ai/contracts";
 import { getAiConfig } from "@/lib/ai/config";
 import { AiError } from "@/lib/ai/errors";
-import { getAiProvider } from "@/lib/ai/provider";
+import { requestStructuredOutput } from "@/lib/ai/provider";
 import { buildQuestionGenerationPrompt } from "@/lib/ai/questionPrompt";
 import type { LocalQuestion } from "@/lib/exam/types";
 import {
@@ -120,20 +120,19 @@ export async function generateQuestion(
     throw new AiError({
       code: "AI_FACT_CHECKING_NOT_IMPLEMENTED",
       message:
-        "AI fact-checking is enabled but has not been implemented yet. Set ENABLE_AI_FACT_CHECKING=false for Part 20.",
+        "Automated fact-checking is unavailable. Set ENABLE_AI_FACT_CHECKING=false to use the review workflow.",
       status: 501,
     });
   }
 
-  const provider = getAiProvider(request.provider);
-  const prompt = buildQuestionGenerationPrompt(request);
-
-  const providerResponse =
-    await provider.generateStructuredOutput({
-      model: config.generationModel,
-      prompt,
+  const providerResponse = await requestStructuredOutput(
+    {
+      prompt: buildQuestionGenerationPrompt(request),
       jsonSchema: generatedQuestionJsonSchema,
-    });
+    },
+    config,
+    request.provider,
+  );
 
   const parsedOutput = parseProviderJson(
     providerResponse.outputText,

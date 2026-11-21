@@ -17,6 +17,7 @@ const aiProviderSchema = z.enum(AI_PROVIDER_NAMES);
 export type AiConfig = {
   defaultProvider: AiProviderName;
   generationModel: string;
+  openAiGenerationModel: string;
   validationModel: string;
   enableOpenAiProvider: boolean;
   enableFactChecking: boolean;
@@ -82,6 +83,10 @@ export function getAiConfig(): AiConfig {
     generationModel: readModelName(
       process.env.DEFAULT_GENERATION_MODEL,
       DEFAULT_GENERATION_MODEL,
+    ),
+    openAiGenerationModel: readModelName(
+      process.env.OPENAI_GENERATION_MODEL,
+      "gpt-4.1-mini",
     ),
     validationModel: readModelName(
       process.env.DEFAULT_VALIDATION_MODEL,

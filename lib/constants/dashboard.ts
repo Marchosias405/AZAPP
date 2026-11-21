@@ -44,7 +44,7 @@ export const DASHBOARD_CARDS: DashboardCard[] = [
   {
     title: "Question Bank",
     description:
-      "Search local questions, review answers, flag problems, disable bad questions, and manage mastered status.",
+      "Search practice questions, review the answers, and choose which questions to revisit.",
     href: "/question-bank",
     status: "ready",
     buttonLabel: "Open question bank",

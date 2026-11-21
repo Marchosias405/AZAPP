@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import * as localQuestionModule from "@/lib/exam/localQuestions";
+import type { LocalQuestion } from "@/lib/exam/types";
 import {
   getLocalDisabledQuestions,
   removeLocalDisabledQuestion,
@@ -24,44 +24,6 @@ import {
   type LocalQuestionReportReason,
 } from "@/lib/exam/questionReports";
 
-type QuestionOptionLike =
-  | string
-  | {
-      id?: string;
-      optionId?: string;
-      value?: string;
-      label?: string;
-      text?: string;
-    };
-
-type QuestionLike = {
-  id: string;
-  domain?: string;
-  topic?: string;
-  difficulty?: string;
-  questionText?: string;
-  question?: string;
-  prompt?: string;
-  questionType?: string;
-  type?: string;
-  selectCount?: number;
-  options?: QuestionOptionLike[];
-  correctAnswers?: unknown;
-  correctAnswerIds?: unknown;
-  correctOptionIds?: unknown;
-  correctAnswer?: unknown;
-  explanation?: string;
-  memoryHook?: string;
-  memory_hook?: string;
-};
-
-type NormalizedOption = {
-  id: string;
-  text: string;
-};
-
-const OPTION_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
 const REPORT_REASON_LABELS: Record<LocalQuestionReportReason, string> = {
   "wrong-answer": "Correct answer seems wrong",
   "confusing-wording": "Question wording is confusing",
@@ -80,194 +42,9 @@ const DISABLE_REASON_OPTIONS = [
   "Other issue",
 ];
 
-function getLocalQuestionBank(): QuestionLike[] {
-  const exportedValues = Object.values(
-    localQuestionModule as Record<string, unknown>,
-  );
-
-  const exportedQuestionArray = exportedValues.find(
-    (value): value is QuestionLike[] =>
-      Array.isArray(value) &&
-      value.length > 0 &&
-      typeof value[0] === "object" &&
-      value[0] !== null &&
-      "id" in value[0],
-  );
-
-  if (exportedQuestionArray) {
-    return exportedQuestionArray;
-  }
-
-  const getLocalQuestionByIndex = (
-    localQuestionModule as Record<string, unknown>
-  ).getLocalQuestionByIndex;
-
-  if (typeof getLocalQuestionByIndex !== "function") {
-    return [];
-  }
-
-  const questions: QuestionLike[] = [];
-  const seenQuestionIds = new Set<string>();
-
-  for (let index = 0; index < 200; index += 1) {
-    const question = getLocalQuestionByIndex(index);
-
-    if (!question || typeof question !== "object") {
-      break;
-    }
-
-    const typedQuestion = question as QuestionLike;
-
-    if (!typedQuestion.id || seenQuestionIds.has(typedQuestion.id)) {
-      break;
-    }
-
-    questions.push(typedQuestion);
-    seenQuestionIds.add(typedQuestion.id);
-  }
-
-  return questions;
-}
-
-function normalizeId(value: unknown): string | null {
-  if (typeof value === "string" && value.trim().length > 0) {
-    return value;
-  }
-
-  if (typeof value === "number") {
-    return String(value);
-  }
-
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    const record = value as Record<string, unknown>;
-
-    return (
-      normalizeId(record.id) ??
-      normalizeId(record.optionId) ??
-      normalizeId(record.value)
-    );
-  }
-
-  return null;
-}
-
-function normalizeIdArray(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => normalizeId(item))
-      .filter((item): item is string => Boolean(item));
-  }
-
-  const singleValue = normalizeId(value);
-
-  return singleValue ? [singleValue] : [];
-}
-
-function getQuestionText(question: QuestionLike): string {
-  return (
-    question.questionText ??
-    question.question ??
-    question.prompt ??
-    "Question text is missing."
-  );
-}
-
-function getQuestionType(question: QuestionLike): string {
-  const selectCount = getSelectCount(question);
-
-  if (selectCount > 1) {
-    return `Choose ${selectCount}`;
-  }
-
-  return "Single answer";
-}
-
-function getSelectCount(question: QuestionLike): number {
-  if (typeof question.selectCount === "number" && question.selectCount > 0) {
-    return question.selectCount;
-  }
-
-  const correctAnswerCount = getCorrectAnswerIds(question).length;
-
-  if (correctAnswerCount > 0) {
-    return correctAnswerCount;
-  }
-
-  const questionType = question.questionType ?? question.type ?? "";
-
-  if (questionType.toLowerCase().includes("choose-3")) {
-    return 3;
-  }
-
-  if (questionType.toLowerCase().includes("choose-2")) {
-    return 2;
-  }
-
-  return 1;
-}
-
-function getCorrectAnswerIds(question: QuestionLike): string[] {
-  const correctAnswers = normalizeIdArray(question.correctAnswers);
-
-  if (correctAnswers.length > 0) {
-    return correctAnswers;
-  }
-
-  const correctAnswerIds = normalizeIdArray(question.correctAnswerIds);
-
-  if (correctAnswerIds.length > 0) {
-    return correctAnswerIds;
-  }
-
-  const correctOptionIds = normalizeIdArray(question.correctOptionIds);
-
-  if (correctOptionIds.length > 0) {
-    return correctOptionIds;
-  }
-
-  return normalizeIdArray(question.correctAnswer);
-}
-
-function getOptions(question: QuestionLike): NormalizedOption[] {
-  const options = question.options ?? [];
-
-  return options.map((option, index) => {
-    const fallbackId = OPTION_LETTERS[index] ?? String(index + 1);
-
-    if (typeof option === "string") {
-      return {
-        id: fallbackId,
-        text: option,
-      };
-    }
-
-    return {
-      id: option.id ?? option.optionId ?? option.value ?? fallbackId,
-      text: option.text ?? option.label ?? option.value ?? "Missing option text",
-    };
-  });
-}
-
-function getCorrectAnswerText(question: QuestionLike): string {
-  const options = getOptions(question);
-  const correctAnswerIds = getCorrectAnswerIds(question);
-
-  if (correctAnswerIds.length === 0) {
-    return "Correct answer is missing.";
-  }
-
-  return correctAnswerIds
-    .map((answerId) => {
-      const option = options.find((item) => item.id === answerId);
-
-      return option ? `${option.id}. ${option.text}` : answerId;
-    })
-    .join(" | ");
-}
-
 function getUniqueSortedValues(
-  questions: QuestionLike[],
-  getValue: (question: QuestionLike) => string | undefined,
+  questions: LocalQuestion[],
+  getValue: (question: LocalQuestion) => string | undefined,
 ): string[] {
   const values = new Set<string>();
 
@@ -310,8 +87,7 @@ function getMasteredQuestion(
   );
 }
 
-export function LocalQuestionBank() {
-  const questions = useMemo(() => getLocalQuestionBank(), []);
+export function LocalQuestionBank({ questions }: { questions: LocalQuestion[] }) {
   const [searchText, setSearchText] = useState("");
   const [topicFilter, setTopicFilter] = useState("all");
   const [domainFilter, setDomainFilter] = useState("all");
@@ -371,17 +147,20 @@ export function LocalQuestionBank() {
     );
   }, [masteredQuestions]);
 
-  const activeQuestionsCount = questions.length - disabledQuestions.length;
+  const disabledCount = questions.filter((q) => disabledQuestionIds.has(q.id)).length;
+  const masteredCount = questions.filter((q) => masteredQuestionIds.has(q.id)).length;
+  const flaggedCount = questions.filter((q) => reportedQuestionIds.has(q.id)).length;
+  const activeQuestionsCount = questions.length - disabledCount;
 
   const filteredQuestions = useMemo(() => {
     const normalizedSearchText = searchText.trim().toLowerCase();
 
     return questions.filter((question) => {
-      const questionText = getQuestionText(question).toLowerCase();
+      const questionText = question.questionText.toLowerCase();
       const topic = question.topic ?? "";
       const domain = question.domain ?? "";
       const explanation = question.explanation ?? "";
-      const memoryHook = question.memoryHook ?? question.memory_hook ?? "";
+      const memoryHook = question.memoryHook;
       const isDisabled = disabledQuestionIds.has(question.id);
       const isMastered = masteredQuestionIds.has(question.id);
 
@@ -423,7 +202,7 @@ export function LocalQuestionBank() {
   ]);
 
   const singleAnswerCount = questions.filter(
-    (question) => getSelectCount(question) === 1,
+    (question) => question.selectCount === 1,
   ).length;
 
   const multiSelectCount = questions.length - singleAnswerCount;
@@ -580,11 +359,10 @@ export function LocalQuestionBank() {
             Question bank
           </p>
 
-          <h1 className="mt-3 text-2xl font-bold">No local questions found</h1>
+          <h1 className="mt-3 text-2xl font-bold">No questions available</h1>
 
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            The local question bank could not load any questions. Check
-            lib/exam/localQuestions.ts.
+            Reload this page to try loading the question bank again.
           </p>
         </section>
 
@@ -605,12 +383,11 @@ export function LocalQuestionBank() {
           Question bank
         </p>
 
-        <h1 className="mt-3 text-2xl font-bold">Local question bank</h1>
+        <h1 className="mt-3 text-2xl font-bold">AZ-900 question bank</h1>
 
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Browse local AZ-900 questions, flag bad ones, disable questions, or
-          mark questions you feel confident about as mastered. Disabled
-          questions are hidden by default.
+          Review the answers, flag a question, or mark it as mastered. Disabling a
+          question removes it from mock exams in this browser.
         </p>
 
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -639,7 +416,7 @@ export function LocalQuestionBank() {
             <p className="text-xs font-semibold uppercase tracking-[0.16em]">
               Flagged
             </p>
-            <p className="mt-1 text-xl font-black">{reports.length}</p>
+            <p className="mt-1 text-xl font-black">{flaggedCount}</p>
           </div>
 
           <div className="rounded-2xl bg-rose-50 px-4 py-3 text-rose-950">
@@ -647,7 +424,7 @@ export function LocalQuestionBank() {
               Disabled
             </p>
             <p className="mt-1 text-xl font-black">
-              {disabledQuestions.length}
+              {disabledCount}
             </p>
           </div>
           <div className="rounded-2xl bg-indigo-50 px-4 py-3 text-indigo-950">
@@ -655,7 +432,7 @@ export function LocalQuestionBank() {
               Mastered
             </p>
             <p className="mt-1 text-xl font-black">
-              {masteredQuestions.length}
+              {masteredCount}
             </p>
           </div>
         </div>
@@ -765,9 +542,9 @@ export function LocalQuestionBank() {
         </label>
 
         <p className="mt-3 text-xs leading-5 text-slate-500">
-          Showing {filteredQuestions.length} of {questions.length} local
-          questions. {reports.length} flagged, {disabledQuestions.length}{" "}
-          disabled, and {masteredQuestions.length} mastered.
+          Showing {filteredQuestions.length} of {questions.length}
+          questions. {flaggedCount} flagged, {disabledCount}{" "}
+          disabled, and {masteredCount} mastered.
         </p>
       </section>
 
@@ -784,8 +561,7 @@ export function LocalQuestionBank() {
           </div>
         ) : (
           filteredQuestions.map((question, index) => {
-            const options = getOptions(question);
-            const correctAnswerIds = getCorrectAnswerIds(question);
+            const { options, correctAnswerIds } = question;
             const report = getReportForQuestion(reports, question.id);
             const disabledQuestion = getDisabledQuestion(
               disabledQuestions,
@@ -813,7 +589,7 @@ export function LocalQuestionBank() {
                   </span>
 
                   <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-bold text-cyan-900">
-                    {getQuestionType(question)}
+                    {question.selectCount > 1 ? `Choose ${question.selectCount}` : "Single answer"}
                   </span>
 
                   <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-900">
@@ -843,7 +619,7 @@ export function LocalQuestionBank() {
                 </p>
 
                 <h2 className="mt-2 text-base font-bold leading-7">
-                  {getQuestionText(question)}
+                  {question.questionText}
                 </h2>
 
                 {report ? (
@@ -901,7 +677,10 @@ export function LocalQuestionBank() {
                 <div className="mt-4 rounded-2xl bg-emerald-50 px-4 py-4 text-emerald-950">
                   <p className="text-sm font-bold">Correct answer</p>
                   <p className="mt-2 text-sm leading-6">
-                    {getCorrectAnswerText(question)}
+                    {options
+                      .filter((choice) => correctAnswerIds.includes(choice.id))
+                      .map((choice) => `${choice.id}. ${choice.text}`)
+                      .join(" | ")}
                   </p>
                 </div>
 
@@ -915,9 +694,7 @@ export function LocalQuestionBank() {
                 <div className="mt-3 rounded-2xl bg-cyan-50 px-4 py-4 text-cyan-950">
                   <p className="text-sm font-bold">Memory hook</p>
                   <p className="mt-2 text-sm leading-6">
-                    {question.memoryHook ??
-                      question.memory_hook ??
-                      "No memory hook available yet."}
+                    {question.memoryHook}
                   </p>
                 </div>
 
@@ -1112,7 +889,7 @@ export function LocalQuestionBank() {
           href="/question-bank/validation"
           className="block w-full rounded-2xl border border-indigo-300 bg-indigo-50 px-4 py-4 text-center text-sm font-semibold text-indigo-950"
         >
-          Validate questions
+          Validate built-in questions
         </Link>
 
         <Link

@@ -2,15 +2,17 @@ import Link from "next/link";
 
 import { AppShell } from "@/components/app-shell";
 import { LocalMockExamEntry } from "@/components/exam/local-mock-exam-entry";
-import { LOCAL_MOCK_QUESTIONS } from "@/lib/exam/localQuestions";
+import { CatalogStatus } from "@/components/exam/catalog-status";
+import { getQuestionCatalog } from "@/lib/exam/questionCatalog";
 
-export default function MockExamPage() {
+export default async function MockExamPage() {
+  const { questions, unavailable } = await getQuestionCatalog();
   return (
     <AppShell>
       <div className="space-y-4">
         <section className="rounded-3xl border border-cyan-300/30 bg-cyan-300/10 px-5 py-5">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
-            Local mock exam
+            Mock exam
           </p>
 
           <h2 className="mt-2 text-xl font-bold text-white">
@@ -23,7 +25,8 @@ export default function MockExamPage() {
           </p>
         </section>
 
-        <LocalMockExamEntry questions={LOCAL_MOCK_QUESTIONS} />
+        <CatalogStatus unavailable={unavailable} />
+        <LocalMockExamEntry questions={questions} />
 
         <Link
           href="/"

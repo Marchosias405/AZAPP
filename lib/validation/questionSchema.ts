@@ -62,6 +62,13 @@ export const generatedQuestionDraftSchema =
     id: true,
   });
 
+export const generatedQuestionSchema = localQuestionSchema.extend({
+  id: z.string().regex(
+    /^generated-[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/,
+    "Expected the ID assigned to the generated preview.",
+  ),
+});
+
 export type ValidatedLocalQuestion = z.infer<
   typeof localQuestionSchema
 >;

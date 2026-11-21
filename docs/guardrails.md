@@ -1,36 +1,11 @@
-# AZ-900 App Guardrails
+# AZ-900 question authoring
 
-This file is a placeholder for future AI generation rules.
+Write original practice questions based on the AZ-900 skills measured, Microsoft Learn concepts and Azure documentation. Avoid exam dumps, leaked questions, and copied assessment text. Describe the questions as practice material.
 
-## Current Part
+## Before publishing
 
-Part 1 only sets up the project foundation.
+- Verify the question, answer choices, explanation and memory hook against the cited Azure material. Check that each named Azure service exists and that the wording makes the correct answer unambiguous.
+- Choose the matching AZ-900 domain, topic, difficulty and question type. The validator checks required fields, permitted topics, answer counts, answer IDs, duplicate choices and disallowed wording.
+- Confirm review after the final edit. The server validates the submitted content again and saves the reviewed question and its ordered choices together.
 
-## AI Rules Coming Later
-
-The app should eventually generate original AZ-900-style practice questions using official skills measured, Microsoft Learn concepts, Azure documentation, and reputable public Azure learning resources.
-
-The app must not:
-
-- Copy real exam-dump questions word-for-word
-- Copy Microsoft practice assessment questions word-for-word
-- Claim generated questions are real exam questions
-- Save AI output before local validation passes
-- Hardcode API keys in source code
-
-## Validation Rules Coming Later
-
-Generated questions should be locally validated before saving.
-
-Future validation should check:
-
-- Valid JSON
-- Required fields
-- Valid AZ-900 domain
-- Valid topic
-- Valid question type
-- Correct answer count
-- No duplicate options
-- Explanation exists
-- Memory hook exists
-- No fake Azure services
+Keep provider and Supabase secret keys in the server environment. The hosted learner app uses published questions. Generation and authoring run in local development.

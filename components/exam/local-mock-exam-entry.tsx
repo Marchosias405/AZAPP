@@ -17,8 +17,9 @@ export function LocalMockExamEntry({ questions }: { questions: LocalQuestion[] }
     queueMicrotask(() => {
       try {
         const missed = getMissedQuestions();
-        const pool = new Map(questions.map((q) => [q.id, q]));
-        for (const q of missed) pool.set(q.id, q);
+        const pool = new Map(missed.map((q) => [q.id, q]));
+        // An updated, published answer takes precedence over an older missed snapshot.
+        for (const question of questions) pool.set(question.id, question);
         const disabled = new Set(getLocalDisabledQuestions().map((q) => q.questionId));
         setExam(selectLocalExamQuestions({
           questions: [...pool.values()].filter((q) => !disabled.has(q.id)),

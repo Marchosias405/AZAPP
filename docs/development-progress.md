@@ -16,4 +16,10 @@ npx supabase migration up --local
 npm run dev -- --hostname 127.0.0.1
 ```
 
-Use the local project URL and server secret in `.env.local` (`NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY`), and configure `GEMINI_API_KEY` for generation. Local Supabase runs on this computer and requires no hosted project slot. Open Supabase Studio's Table Editor to inspect published questions. Mock exams draw from the bundled set and the learner's pending misses.
+Use the local project URL and server secret in `.env.local` (`NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY`), and configure `GEMINI_API_KEY` for generation. Local Supabase runs on this computer and requires no hosted project slot. Open Supabase Studio's Table Editor to inspect published questions.
+
+## Reviewed questions in practice
+
+Reload the question bank and search for the text of a newly published question. The bank and mock exams read the same catalog. It includes built-in questions and active, validated, shared generated questions from Supabase. The exam gives pending misses priority and respects the learner’s local disabled and mastered settings.
+
+The hosted app can run with the built-in bank alone. For CI checks, Vercel setup and connecting a hosted question bank, see the [deployment guide](deployment.md).
